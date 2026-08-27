@@ -1,0 +1,23 @@
+{
+  "name": "@treasure-ar/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Hono API on Cloudflare Workers, backed by D1.",
+  "scripts": {
+    "dev": "node tools/dev.mjs",
+    "deploy": "wrangler deploy",
+    "types": "wrangler types",
+    "db:create": "wrangler d1 create treasure-ar",
+    "db:migrate": "wrangler d1 migrations apply treasure-ar --local",
+    "db:migrate:remote": "wrangler d1 migrations apply treasure-ar --remote",
+    "db:seed": "node tools/seed.mjs",
+    "db:console": "wrangler d1 execute treasure-ar --local --command"
+  },
+  "dependencies": {
+    "hono": "^4.13.3"
+  },
+  "devDependencies": {
+    "wrangler": "^4.125.0"
+  }
+}

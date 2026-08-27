@@ -1,0 +1,19 @@
+# Cloudflare Pages routing.
+#
+# Order matters: Pages evaluates these top to bottom, so the specific legacy
+# rules have to precede the catch-all or every one of them would be swallowed
+# by the SPA fallback and silently render the app at the old URL instead of
+# redirecting to the new one.
+
+# The vanilla build served pages as .html files; the React app routes on clean
+# paths. Printed QR codes and bookmarks from that build still work.
+/index.html               /                    301
+/markers.html             /markers             301
+/studio.html              /studio              301
+/admin.html               /admin               301
+/dev/tracking-test.html   /dev/tracking-test   301
+
+# Client-side routing: every other path is a React route, not a file. The 200
+# is what makes this a rewrite rather than a redirect, so the URL the user
+# typed survives into the app and react-router can read it.
+/*                        /index.html          200

@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.env
+.env.local
+
+# Shared dev certificates
+certs/*.pem
+
+# wrangler local D1 state
+.wrangler/
+apps/*/.wrangler/
+
+# Compiled targets are large and reproducible from the target studio.
+apps/api/seed/targets/*.mind

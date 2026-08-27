@@ -1,0 +1,31 @@
+{
+  "name": "treasure-ar",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Image-tracking AR treasure hunt. apps/web is the React front end (Cloudflare Pages); apps/api is the Hono + D1 API (Cloudflare Workers).",
+  "engines": {
+    "node": ">=20"
+  },
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n api,web -c blue,magenta \"npm:dev:api\" \"npm:dev:web\"",
+    "dev:api": "npm run dev --workspace apps/api",
+    "dev:web": "npm run dev --workspace apps/web",
+    "build": "npm run build --workspace apps/web",
+    "preview": "npm run preview --workspace apps/web",
+    "deploy": "npm run deploy --workspace apps/api && npm run deploy --workspace apps/web",
+    "deploy:api": "npm run deploy --workspace apps/api",
+    "deploy:web": "npm run deploy --workspace apps/web",
+    "db:create": "npm run db:create --workspace apps/api",
+    "db:migrate": "npm run db:migrate --workspace apps/api",
+    "db:migrate:remote": "npm run db:migrate:remote --workspace apps/api",
+    "db:seed": "npm run db:seed --workspace apps/api",
+    "test": "npm run test --workspace apps/web"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

@@ -1,0 +1,135 @@
+@import 'tailwindcss';
+
+/**
+ * Design tokens. Everything else in the app is Tailwind utilities; this block
+ * is what makes those utilities speak the product's vocabulary — `bg-surface`,
+ * `text-muted`, `ease-out-back` — instead of raw hex and magic cubic-beziers.
+ */
+@theme {
+  --color-ink: #0b0e12;
+  --color-surface: rgb(16 20 26 / 0.82);
+  --color-stroke: rgb(255 255 255 / 0.14);
+  --color-paper: #f2f5f8;
+  --color-muted: rgb(242 245 248 / 0.62);
+  --color-accent: #f0b429;
+  --color-accent-ink: #16110a;
+  --color-warn: #ff6b6b;
+  --color-ok: #4fd1c5;
+
+  --ease-out-back: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --animate-spin-slow: spin 800ms linear infinite;
+  --animate-pulse-dot: pulse-dot 1.6s var(--ease-out-back) infinite;
+  --animate-sweep: sweep 2.6s var(--ease-out-back) infinite;
+
+  --font-sans: ui-sans-serif, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+@keyframes pulse-dot {
+  50% {
+    opacity: 0.25;
+    transform: scale(0.75);
+  }
+}
+
+@keyframes sweep {
+  0%,
+  100% {
+    top: 4%;
+    opacity: 0;
+  }
+  15%,
+  85% {
+    opacity: 1;
+  }
+  50% {
+    top: 96%;
+  }
+}
+
+@layer base {
+  html,
+  body {
+    height: 100%;
+    background: var(--color-ink);
+    color: var(--color-paper);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    overscroll-behavior: none;
+  }
+
+  /* The AR route locks scrolling; the operator routes opt back in. */
+  body:has(#root > .ar-route) {
+    overflow: hidden;
+  }
+}
+
+/**
+ * AR host. Deliberately NOT inside a cascade layer.
+ *
+ * A-Frame injects its own <style> at runtime, and unlayered rules beat every
+ * layered one no matter the specificity — so anything of ours that has to win
+ * against `.a-scene` must sit outside `@layer` too, and out-specify it.
+ *
+ * The size of `.ar-scene-host` is load-bearing, not cosmetic: MindAR's `_resize`
+ * derives the video dimensions AND the camera fov/aspect from
+ * `container.clientWidth/clientHeight`, where the container is the <a-scene>'s
+ * parent. A zero-height parent yields a mis-scaled video and a broken
+ * projection matrix — which looks exactly like a black screen.
+ */
+.ar-scene-host {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  /* Pin the video's stacking order: MindAR gives it `z-index: -2`, which is
+     only meaningful relative to a stacking context we control. */
+  isolation: isolate;
+}
+
+.ar-scene-host a-scene {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.ar-scene-host canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 0 !important;
+}
+
+/* Tailwind's preflight sets `max-width: 100%` and `height: auto` on every
+   <video>. MindAR sizes its feed *larger* than the viewport on purpose to crop
+   it to cover, so preflight would clamp it back to letterboxed. */
+.ar-scene-host video {
+  max-width: none;
+  max-height: none;
+  height: auto;
+  object-fit: cover;
+}
+
+.mindar-ui-overlay {
+  position: fixed;
+  inset: 0;
+}
+
+/* A-Frame injects VR / fullscreen / orientation chrome this app replaces. */
+.a-enter-vr,
+.a-enter-ar,
+.a-fullscreen,
+.a-orientation-modal,
+.a-loader-title {
+  display: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
