@@ -101,7 +101,17 @@ export default function ArScene({
 
       // Detection is immediate; the real overlay and the onFound callback (the
       // unlock) are held behind the pending cube for FOUND_DELAY_MS instead.
+      //
+      // MindAR can re-fire `targetFound` for the same acquisition — a brief
+      // confidence dip that recovers without an intervening `targetLost` — so a
+      // pending timer already running for this marker means "still the same
+      // find," not a new one. Scheduling a second timer here would let both
+      // fire independently a moment apart, and the second would read whatever
+      // level is current *then* rather than the one being looked at when the
+      // marker was actually found — completing the next level too and skipping
+      // it entirely.
       const onTargetFound = () => {
+        if (pending.current.has(marker.id)) return;
         foundAt.current.set(marker.id, performance.now());
         setVisible(cubeRefs, marker.id, true);
 

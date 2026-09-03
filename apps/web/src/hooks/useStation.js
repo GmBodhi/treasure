@@ -57,6 +57,7 @@ export function useStation(level) {
               subtitle: `Level ${level.n} unlocked`,
               label: `${level.n} of ${LEVEL_COUNT}`,
               body: level.story,
+              breadcrumb: level.breadcrumb,
               cta: { label: 'Continue', href: '/' },
               overlay: level.station.overlay ?? { type: 'card' },
             },
