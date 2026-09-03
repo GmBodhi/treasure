@@ -2,6 +2,13 @@ import { useEffect, useRef } from 'react';
 import { MINDAR_SYSTEM } from './aframe.js';
 import Overlay from './overlays/Overlay.jsx';
 
+/**
+ * How long the pending cube shows before the real overlay and the `onFound`
+ * callback (the actual unlock) fire. Detection itself is immediate; this only
+ * delays what happens next.
+ */
+const FOUND_DELAY_MS = 3000;
+
 /** Serialise an object into A-Frame's `key: value; key: value` attribute syntax. */
 const styleString = (props) =>
   Object.entries(props)
@@ -55,7 +62,10 @@ export default function ArScene({
 }) {
   const sceneRef = useRef(null);
   const targetRefs = useRef(new Map());
+  const overlayRefs = useRef(new Map());
+  const cubeRefs = useRef(new Map());
   const foundAt = useRef(new Map());
+  const pending = useRef(new Map());
   const startedRef = useRef(false);
 
   // Handlers are read through a ref so a re-render with new callbacks never
@@ -80,6 +90,7 @@ export default function ArScene({
   // --- target events -------------------------------------------------------
   useEffect(() => {
     const listeners = [];
+    const setVisible = (refs, id, visible) => refs.current.get(id)?.setAttribute('visible', visible);
 
     for (const marker of experience.markers) {
       const el = targetRefs.current.get(marker.id);
@@ -88,12 +99,30 @@ export default function ArScene({
       const video = () =>
         marker.overlay?.type === 'video' ? document.getElementById(`video-${marker.id}`) : null;
 
+      // Detection is immediate; the real overlay and the onFound callback (the
+      // unlock) are held behind the pending cube for FOUND_DELAY_MS instead.
       const onTargetFound = () => {
         foundAt.current.set(marker.id, performance.now());
-        video()?.play?.().catch(() => {});
-        handlers.current.onFound?.(marker);
+        setVisible(cubeRefs, marker.id, true);
+
+        const timeoutId = setTimeout(() => {
+          pending.current.delete(marker.id);
+          setVisible(cubeRefs, marker.id, false);
+          setVisible(overlayRefs, marker.id, true);
+          video()?.play?.().catch(() => {});
+          handlers.current.onFound?.(marker);
+        }, FOUND_DELAY_MS);
+        pending.current.set(marker.id, timeoutId);
       };
       const onTargetLost = () => {
+        const timeoutId = pending.current.get(marker.id);
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+          pending.current.delete(marker.id);
+        }
+        setVisible(cubeRefs, marker.id, false);
+        setVisible(overlayRefs, marker.id, false);
+
         const startedAt = foundAt.current.get(marker.id);
         const dwellMs = startedAt ? performance.now() - startedAt : null;
         foundAt.current.delete(marker.id);
@@ -111,6 +140,8 @@ export default function ArScene({
         el.removeEventListener('targetFound', found);
         el.removeEventListener('targetLost', lost);
       }
+      for (const timeoutId of pending.current.values()) clearTimeout(timeoutId);
+      pending.current.clear();
     };
   }, [experience]);
 
@@ -233,7 +264,31 @@ export default function ArScene({
             data-marker-id={marker.id}
             mindar-image-target={`targetIndex: ${marker.targetIndex}`}
           >
-            <Overlay marker={marker} />
+            <a-entity
+              ref={(el) => {
+                if (el) overlayRefs.current.set(marker.id, el);
+                else overlayRefs.current.delete(marker.id);
+              }}
+              visible="false"
+            >
+              <Overlay marker={marker} />
+            </a-entity>
+            <a-entity
+              ref={(el) => {
+                if (el) cubeRefs.current.set(marker.id, el);
+                else cubeRefs.current.delete(marker.id);
+              }}
+              visible="false"
+              position="0 0 0.15"
+            >
+              <a-box
+                width="0.15"
+                height="0.15"
+                depth="0.15"
+                material="color: #2ecc71; wireframe: true; wireframeLinewidth: 1; shader: flat; transparent: true; opacity: 0.85"
+                animation="property: rotation.y; from: 0; to: 360; loop: true; dur: 3200; easing: linear"
+              />
+            </a-entity>
           </a-entity>
         ))}
       </a-scene>
