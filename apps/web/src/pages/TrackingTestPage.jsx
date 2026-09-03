@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { api } from '../api/client.js';
 import ArScene from '../ar/ArScene.jsx';
 import { loadAframe } from '../ar/aframe.js';
+import { getExperience } from '../lib/clues.js';
 import { MARKERS, markerImage } from '../lib/markers.js';
 
 /**
@@ -79,7 +79,7 @@ export default function TrackingTestPage() {
         raf = requestAnimationFrame(draw);
 
         await loadAframe();
-        const loaded = await api.getExperience('demo');
+        const loaded = getExperience('demo');
         if (cancelled) return;
 
         if (loaded.markers.length !== MARKERS.length) {

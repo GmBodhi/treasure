@@ -1,8 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { api } from '../api/client.js';
+import { useRef, useState } from 'react';
 import Button from '../components/Button.jsx';
 import PageShell, { Card, SectionTitle } from '../components/PageShell.jsx';
+import { listExperiences } from '../lib/clues.js';
 import { MARKERS, markerDataUri, markerImage } from '../lib/markers.js';
 
 const FIELD =
@@ -18,20 +17,13 @@ const fileToImage = (file) =>
   });
 
 export default function StudioPage() {
-  const [experiences, setExperiences] = useState([]);
-  const [selected, setSelected] = useState('');
+  // Hunts are hard-coded, so this list needs no fetch and cannot be empty.
+  const experiences = listExperiences();
+  const [selected, setSelected] = useState(experiences[0]?.id ?? '');
   const [progress, setProgress] = useState(null);
   const [log, setLog] = useState(null);
   const [fileCount, setFileCount] = useState(0);
   const fileInput = useRef(null);
-  const [params] = useSearchParams();
-
-  useEffect(() => {
-    api.listExperiences().then(({ experiences: list }) => {
-      setExperiences(list);
-      setSelected((current) => current || list[0]?.id || '');
-    }).catch((err) => setLog({ tone: 'warn', text: `Could not list experiences: ${err.message}` }));
-  }, []);
 
   /** Uploaded files win over the built-in markers when present. */
   async function sourceImages() {
@@ -58,39 +50,28 @@ export default function StudioPage() {
     return { buffer, images, seconds: ((performance.now() - started) / 1000).toFixed(1) };
   }
 
-  const compileAndUpload = useCallback(async function compileAndUpload() {
-    try {
-      const { buffer, images, seconds } = await compile();
-      const blob = new Blob([buffer], { type: 'application/octet-stream' });
-      const payload = await api.uploadTarget(selected, blob, `${selected}.mind`);
-      setLog({
-        tone: 'ok',
-        text:
-          `Done. ${images.length} targets, ${(payload.bytes / 1024).toFixed(1)} KB, ${seconds}s → ${payload.targetFile}\n` +
-          `Make sure each marker in the manifest has a matching targetIndex (0…${images.length - 1}).`,
-      });
-    } catch (err) {
-      setLog({ tone: 'warn', text: `Failed: ${err.message}` });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- compile() is stable in practice.
-  }, [selected]);
-
-  // Lets a headless build run the whole compile+upload without a click.
-  const auto = params.has('auto');
-  useEffect(() => {
-    if (auto && selected) compileAndUpload();
-  }, [auto, selected, compileAndUpload]);
-
+  /**
+   * Compiled targets are static assets of the app now, so the last step of this
+   * is a file the operator saves into `public/targets/`. There is nowhere to
+   * upload it to — that is the point of the hunt being a static bundle.
+   */
   async function compileAndDownload() {
+    const filename = `${selected}.mind`;
     try {
       const { buffer, images, seconds } = await compile();
       const url = URL.createObjectURL(new Blob([buffer]));
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'targets.mind';
+      a.download = filename;
       a.click();
       URL.revokeObjectURL(url);
-      setLog({ tone: 'ok', text: `Done. ${images.length} targets, ${seconds}s → downloaded targets.mind` });
+      setLog({
+        tone: 'ok',
+        text:
+          `Done. ${images.length} targets, ${(buffer.byteLength / 1024).toFixed(1)} KB, ${seconds}s → ${filename}\n` +
+          `Save it to apps/web/public/targets/${filename}, then reload the AR page.\n` +
+          `Each clue in src/lib/clues.js needs a matching targetIndex (0…${images.length - 1}).`,
+      });
     } catch (err) {
       setLog({ tone: 'warn', text: `Failed: ${err.message}` });
     }
@@ -99,7 +80,7 @@ export default function StudioPage() {
   return (
     <PageShell
       title="Target studio"
-      lede="Compiles images into a MindAR .mind bundle in this browser — no native dependencies, no upload to a third party — then attaches it to an experience on this server."
+      lede="Compiles images into a MindAR .mind bundle in this browser — no native dependencies, no upload to a third party. Save the result into public/targets/ and it ships with the app."
       width="max-w-[760px]"
     >
       <SectionTitle>Source images</SectionTitle>
@@ -137,10 +118,10 @@ export default function StudioPage() {
         </label>
       </Card>
 
-      <SectionTitle>Attach to</SectionTitle>
+      <SectionTitle>Compile for</SectionTitle>
       <Card>
         <label className="mb-1.5 block text-[13px] text-muted" htmlFor="exp">
-          Experience
+          Hunt
         </label>
         <select
           id="exp"
@@ -150,16 +131,21 @@ export default function StudioPage() {
         >
           {experiences.map((exp) => (
             <option key={exp.id} value={exp.id}>
-              {exp.name} ({exp.markerCount} markers)
+              {exp.name} ({exp.markerCount} clues)
             </option>
           ))}
         </select>
 
+        <p className="mt-2.5 font-mono text-[13px] text-muted">
+          → saves as <span className="text-paper">apps/web/public/targets/{selected}.mind</span>
+        </p>
+
         <div className="mt-3.5 flex flex-wrap gap-2.5">
-          <Button size="sm" onClick={compileAndUpload} disabled={!selected || (progress !== null && progress < 100)}>
-            Compile &amp; upload
-          </Button>
-          <Button size="sm" variant="ghost" onClick={compileAndDownload}>
+          <Button
+            size="sm"
+            onClick={compileAndDownload}
+            disabled={!selected || (progress !== null && progress < 100)}
+          >
             Compile &amp; download
           </Button>
         </div>

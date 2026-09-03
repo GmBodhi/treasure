@@ -11,12 +11,13 @@ import ScanHud from '../components/ScanHud.jsx';
 import { useCamera } from '../hooks/useCamera.js';
 import { useExperience } from '../hooks/useExperience.js';
 import { usePageHidden } from '../hooks/usePageVisibility.js';
+import { DEFAULT_EXPERIENCE_ID } from '../lib/clues.js';
 import { describeError } from '../lib/describeError.js';
 
 export default function ScanPage() {
   // ?e=<id> lets one deployment serve several hunts; defaults to the demo.
   const [params] = useSearchParams();
-  const experienceId = params.get('e') ?? 'demo';
+  const experienceId = params.get('e') ?? DEFAULT_EXPERIENCE_ID;
 
   const { status: loadStatus, experience, error: loadError } = useExperience(experienceId);
   const hidden = usePageHidden();

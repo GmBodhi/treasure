@@ -1,12 +1,17 @@
 import { useEffect, useState } from 'react';
-import { api } from '../api/client.js';
+import { getExperience, targetExists } from '../lib/clues.js';
 
 /**
- * Fetch one experience manifest and confirm its compiled target exists.
+ * Resolve one hunt and confirm its compiled target is actually deployed.
  *
- * The HEAD check is here rather than left to MindAR on purpose: without it the
- * failure surfaces as a generic load error *after* the camera is already open,
- * which is both alarming and unactionable.
+ * The clues themselves are hard-coded, so looking one up is synchronous and
+ * cannot fail for network reasons. What remains asynchronous is the target: a
+ * multi-megabyte binary that is git-ignored and compiled at `/studio`, so a
+ * fresh clone genuinely has none.
+ *
+ * That HEAD stays on the critical path for the reason it always has — without
+ * it a missing `.mind` surfaces as a generic MindAR load error *after* the
+ * camera is already open, which is both alarming and unactionable.
  */
 export function useExperience(id) {
   const [state, setState] = useState({ status: 'loading', experience: null, error: null });
@@ -14,36 +19,35 @@ export function useExperience(id) {
   useEffect(() => {
     let cancelled = false;
 
+    const experience = getExperience(id);
+    if (!experience) {
+      setState({
+        status: 'error',
+        experience: null,
+        error: {
+          title: 'No such hunt',
+          body: `"${id}" is not defined in src/lib/clues.js. Check the ?e= parameter.`,
+        },
+      });
+      return undefined;
+    }
+
     (async () => {
-      try {
-        const experience = await api.getExperience(id);
-        if (cancelled) return;
+      const ok = await targetExists(experience.targetUrl);
+      if (cancelled) return;
 
-        if (!(await api.hasTarget(experience.targetUrl))) {
-          if (cancelled) return;
-          setState({
-            status: 'error',
-            experience,
-            error: {
-              title: 'No compiled target',
-              body: `"${experience.name}" has no .mind file yet. Open /studio and press “Compile & upload”, then reload this page.`,
+      setState(
+        ok
+          ? { status: 'ready', experience, error: null }
+          : {
+              status: 'error',
+              experience,
+              error: {
+                title: 'No compiled target',
+                body: `"${experience.name}" has no ${experience.targetFile} yet. Open /studio, press “Compile & download”, and save the file to apps/web/public/targets/ — then reload this page.`,
+              },
             },
-          });
-          return;
-        }
-
-        setState({ status: 'ready', experience, error: null });
-      } catch (err) {
-        if (cancelled) return;
-        setState({
-          status: 'error',
-          experience: null,
-          error: {
-            title: 'Experience not found',
-            body: `${err.message}. Check the ?e= parameter or seed the server.`,
-          },
-        });
-      }
+      );
     })();
 
     return () => {

@@ -1,0 +1,6 @@
+Compiled MindAR targets live here and ship as static assets of the app.
+
+They are git-ignored: a .mind bundle is megabytes of binary and is exactly
+reproducible from /studio, so the repo carries the recipe rather than the
+result. Press "Compile & download" there and save the file next to this one as
+<experience-id>.mind — `demo.mind` for the hunt defined in src/lib/clues.js.

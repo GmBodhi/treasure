@@ -9,11 +9,14 @@ A monorepo of two independently deployed halves:
 | Workspace | What it is | Deploys to |
 | --- | --- | --- |
 | `apps/web` | React + Vite front end, [MindAR][mindar] and [A-Frame][aframe] for tracking and rendering | Cloudflare **Pages** |
-| `apps/api` | Hono API backed by D1 | Cloudflare **Workers** |
+| `apps/api` | Hono API backed by D1 — scan analytics only, and optional | Cloudflare **Workers** |
 
-They share nothing at runtime — the app is a static bundle that calls the API
-cross-origin — so either can be deployed without touching the other. npm
-workspaces keep them one `npm install`.
+**The hunt is a static bundle.** Clues are hard-coded in
+`apps/web/src/lib/clues.js` and the compiled tracking target is a static asset
+under `apps/web/public/targets/`, so scanning needs no server, no database and
+no network round-trip before the camera can open. The Worker is left for one
+job — recording scans — and a build with no `VITE_API_BASE` simply does not
+report. npm workspaces keep them one `npm install`.
 
 [mindar]: https://hiukim.github.io/mind-ar-js-doc/
 [aframe]: https://aframe.io/
@@ -21,33 +24,45 @@ workspaces keep them one `npm install`.
 ## Quick start
 
 ```bash
-npm install          # one install for both workspaces
-npm run db:migrate   # create the local D1 database from apps/api/migrations/
-npm run dev          # Worker on :8787, Vite dev server on :5173
-npm run db:seed      # load the demo experience and its compiled target
+npm install       # one install for both workspaces
+npm run dev:web   # Vite dev server on :5173 — this is the entire hunt
 ```
 
-Open the URL the Vite banner prints. `npm run dev` runs both workspaces; Vite
-proxies `/api` to the Worker, so development stays same-origin and CORS never
-enters into it. No Cloudflare account is needed for any of this — `wrangler dev`
-simulates D1 on disk under `apps/api/.wrangler/`.
+Then open `/studio`, press **Compile & download**, and save the file to
+`apps/web/public/targets/demo.mind`. Reload and the hunt runs. Compiled targets
+are git-ignored — megabytes of binary, exactly reproducible from that button —
+so a fresh clone has none, and the AR page says so rather than failing inside
+MindAR.
+
+To also collect scan analytics, run the Worker alongside it:
+
+```bash
+npm run db:migrate   # create the local D1 database from apps/api/migrations/
+npm run dev          # Worker on :8787 AND the Vite dev server on :5173
+```
+
+Vite proxies `/api` to the Worker, so development stays same-origin and CORS
+never enters into it. No Cloudflare account is needed — `wrangler dev` simulates
+D1 on disk under `apps/api/.wrangler/`.
 
 Every root script delegates to a workspace, so `npm run dev --workspace apps/api`
 and friends work too if you only want one half.
 
 ### The production shape
 
-The built app on its own origin, talking to the API cross-origin — which is what
-actually exercises CORS, and what `_redirects` is for:
+The built app served the way Pages serves it — which is the only local way to
+exercise `_redirects` and `_headers`:
 
 ```bash
-VITE_API_BASE=https://192.168.1.42:8787 npm run build
+npm run build
 npx wrangler pages dev apps/web/dist --port 4173 --ip 0.0.0.0   --local-protocol https --https-cert-path certs/cert.pem --https-key-path certs/key.pem
 ```
 
 `wrangler pages dev` honours `_redirects` and `_headers`; `vite preview` does
-not, so it is the only local way to check that the SPA fallback and the legacy
-redirects actually work before deploying.
+not, so it is the only local way to check the SPA fallback, the legacy
+redirects, and the `/targets/*` content type before deploying. Add
+`VITE_API_BASE=https://192.168.1.42:8787` to the build to point it at a Worker
+and exercise CORS as well.
 
 ### Why `.npmrc` sets `ignore-scripts`
 
@@ -61,17 +76,17 @@ same reason: the test runners drive an installed Chrome via `CHROME_PATH`.
 | --- | --- |
 | `/` | the AR experience (`?e=<id>` selects which) |
 | `/markers` | printable marker sheet |
-| `/studio` | compile images into a `.mind` target and attach it to an experience |
-| `/admin` | experience list, scan analytics, manual target upload |
+| `/studio` | compile images into a `.mind` target you save into `public/targets/` |
+| `/admin` | hunt list and scan analytics |
 | `/dev/tracking-test` | synthetic-camera tracking test — no camera, no printout, no human |
 
 The old `.html` URLs (`/markers.html` and friends) 301 to these, so printed QR
 codes from earlier builds still work.
 
-`apps/api/seed/targets/demo.mind` holds the compiled target. It is git-ignored, so a
-fresh clone will not have it — the AR page says so, and `/studio` rebuilds it in
-a few seconds with one press of **Compile & upload**. Do the same after changing
-the marker art.
+`apps/web/public/targets/demo.mind` holds the compiled target. It is
+git-ignored, so a fresh clone will not have it — the AR page says so, and
+`/studio` rebuilds it in a few seconds with one press of **Compile & download**.
+Do the same after changing the marker art or adding a clue.
 
 ## HTTPS is not optional
 
@@ -123,12 +138,17 @@ The startup banner prints the LAN URLs to type into the phone.
 
 ### One scan, end to end
 
-1. The phone opens `/?e=demo`. `ScanPage` calls `useExperience`, which fetches
-   `GET /api/experiences/demo` — the manifest: markers, overlay definitions, and
-   a `targetUrl`.
-2. A `HEAD` on `targetUrl` runs before anything else. Without it a missing
-   `.mind` surfaces as a generic MindAR load error *after* the camera is already
-   open, which is both alarming and unactionable.
+1. The phone opens `/?e=demo`. `ScanPage` calls `useExperience`, which looks the
+   hunt up in `src/lib/clues.js` — clues, overlay definitions and a `targetUrl`.
+   Synchronous: the definitions are in the bundle, so there is no fetch and no
+   await on the critical path.
+2. A `HEAD` on `targetUrl` runs before anything else, checking the *content
+   type* as well as the status. Without it a missing `.mind` surfaces as a
+   generic MindAR load error *after* the camera is already open, which is both
+   alarming and unactionable. The status alone is not enough: the SPA fallback
+   (`/* /index.html 200`) answers an unmatched path with `200 text/html` rather
+   than a 404, so a target that was never compiled would otherwise look present
+   and MindAR would try to parse the app's own HTML as a feature bundle.
 3. The user presses **Start camera**. iOS requires `getUserMedia` to sit behind a
    user gesture, so this cannot be automatic.
 4. `loadAframe()` dynamically imports A-Frame and MindAR — ~1.5 MB, and the
@@ -140,8 +160,10 @@ The startup banner prints the LAN URLs to type into the phone.
    bundle, and fires `targetFound` / `targetLost` on the matching target entity.
 7. `onFound` shows the sheet, vibrates, and posts the hit. `onLost` posts the
    dwell time.
-8. `POST /api/scans` goes out via `sendBeacon`, so the report survives the user
-   backgrounding the tab. The Worker inserts a row into D1.
+8. If analytics is configured, `POST /api/scans` goes out via `sendBeacon`, so
+   the report survives the user backgrounding the tab, and the Worker inserts a
+   row into D1. With no `VITE_API_BASE` this is a no-op and the hunt is
+   unaffected.
 9. `/admin` reads `GET /api/scans/summary` — per-marker counts, unique sessions,
    mean dwell.
 
@@ -272,6 +294,51 @@ is what makes the transitions cross-fade instead of cut. The visibility classes
 are written out literally in `src/components/panels.js` — Tailwind scans source
 text, so a template-built variant would never be seen.
 
+## Clues
+
+`apps/web/src/lib/clues.js` is the source of truth for every hunt, and the file
+you edit to write content. Two vocabularies meet in it, deliberately:
+
+- a **clue** is what you author — a station, with its copy and whichever overlay
+  it presents;
+- a **marker** is what the tracker sees — an image in the compiled `.mind`,
+  addressed by `targetIndex`.
+
+They are the same object. `getExperience()` publishes `clues` as `markers`
+because that is the name the A-Frame/MindAR layer, the printable sheet and the
+`scans` table have always used. Author clues; the tracker reads markers.
+
+### Clue fields
+
+| Field | Required | What it does |
+| --- | --- | --- |
+| `targetIndex` | **yes** | integer ≥ 0, unique in the hunt — position in the compiled bundle |
+| `id` | **yes** | unique in the hunt; keys the scene entity, the dwell timer and `marker_id` in analytics |
+| `title` | no | sheet heading, and the card overlay's 3D text |
+| `subtitle` | no | eyebrow above the heading |
+| `body` | no | **the clue itself** — the text that sends someone to the next station |
+| `accent` | no | overrides `--color-accent` across the whole HUD while the marker is held |
+| `cta` | no | `{ label, href }`; an `href` starting with `http` opens in a new tab |
+| `overlay` | no | what renders in 3D. Omitted entirely means `{ type: 'card' }` |
+
+### Adding a clue
+
+A clue is two coupled things, and one without the other does not work:
+
+1. **Artwork the tracker can match** — add it to `src/lib/markers.js`, or bring
+   your own image into `/studio`. Every marker needs a different *composition*,
+   not just a different palette; see [Markers](#markers).
+2. **An entry in `clues.js`**, whose `targetIndex` is that image's position in
+   the compile order.
+
+Then recompile at `/studio` and save the download over
+`public/targets/<hunt-id>.mind`. A clue added against a target that does not
+contain its image is a station that can never fire — which is what the tracking
+test exists to catch.
+
+Adding a hunt is a second entry in `HUNTS`, reachable at `/?e=<id>`, with its
+own `<id>.mind` beside the first.
+
 ## Markers
 
 `src/lib/markers.js` generates the artwork as SVG, deterministically from a
@@ -296,8 +363,9 @@ the manifest.
 
 ### Compiling targets
 
-`/studio` runs MindAR's compiler in the browser and uploads the result. That is
-the supported path — nothing to install. It imports the non-A-Frame MindAR
+`/studio` runs MindAR's compiler in the browser and hands you the result as a
+download to drop into `public/targets/`. That is the supported path — nothing
+to install. It imports the non-A-Frame MindAR
 build, which is a plain ES module, so the studio route never loads the AR
 runtime.
 
@@ -307,11 +375,11 @@ first). On a machine without one it will not build, which is exactly why the
 studio exists:
 
 ```bash
-npm run compile-target --workspace apps/web -- ../api/seed/targets/hunt.mind art/one.png art/two.png
+npm run compile-target --workspace apps/web -- public/targets/demo.mind art/one.png art/two.png
 ```
 
-That writes a file; uploading it to the API is a separate step — `/admin`, or
-`npm run db:seed -- <baseUrl> seed/targets/hunt.mind`.
+That writes a file straight to disk; put it in `apps/web/public/targets/` and
+it ships with the next build.
 
 ## Testing
 
@@ -319,6 +387,9 @@ The tracking test is the one that matters: it replaces `getUserMedia` with a
 canvas stream showing each marker in turn, runs the real pipeline, and asserts
 every target in the manifest fires `targetFound`. It is the only way to prove a
 compiled `.mind` actually matches the artwork without printing anything.
+
+Neither runner needs the API — the hunt is static, so `npm run dev:web` and a
+compiled target are the whole fixture.
 
 ```bash
 npm test --workspace apps/web                     # both runners against :5173
@@ -342,8 +413,16 @@ Both runners drive an installed Chrome via `CHROME_PATH`; set it if yours is not
 at the default Windows location.
 ## Backend
 
-A Cloudflare Worker (Hono) with D1 for storage. It serves the API only — the
-React app in `apps/web` is deployed separately and calls it cross-origin.
+A Cloudflare Worker (Hono) with D1 for storage, deployed separately from the app
+and called cross-origin.
+
+**Only `/api/scans*` is still on the app's path.** Clues moved into the bundle
+and targets moved into `public/targets/`, so the experience and target endpoints
+below — and the `seed/` pipeline that feeds them — are no longer used by
+`apps/web`. They still work, and are kept for anyone who wants the
+server-authored shape back; but nothing in the app calls them, and
+`apps/api/seed/experiences.seed.json` is a historical copy of the demo hunt, not
+its source. `src/lib/clues.js` is.
 
 All paths below are inside `apps/api/`.
 
@@ -359,15 +438,15 @@ All paths below are inside `apps/api/`.
 
 | Endpoint | Purpose |
 | --- | --- |
-| `GET /api/experiences` | list |
+| `POST /api/scans` | record one marker hit — **the only endpoint the app uses** |
+| `GET /api/scans` | recent scans |
+| `GET /api/scans/summary` | per-marker rollup |
+| `GET /api/experiences` | list *(unused by the app)* |
 | `GET /api/experiences/:id` | one manifest, with an absolute `targetUrl` |
 | `PUT /api/experiences/:id` | create or replace |
 | `DELETE /api/experiences/:id` | remove, chunks included |
 | `POST /api/experiences/:id/target` | upload a compiled `.mind` (multipart `target`) |
 | `GET`/`HEAD /api/experiences/:id/target.mind` | serve it |
-| `POST /api/scans` | record one marker hit |
-| `GET /api/scans` | recent scans |
-| `GET /api/scans/summary` | per-marker rollup |
 
 ### Storage
 
@@ -386,6 +465,9 @@ The row cap still exists to stop an unattended demo growing forever, but it is
 trimmed in `waitUntil` after the response — no client waits on it.
 
 ### Targets are chunked, and why
+
+*(This describes the API-backed target path, which the app no longer takes —
+targets are static assets now. It is kept because the endpoints still exist.)*
 
 `.mind` bundles are megabytes of binary. D1 caps a single BLOB at **2 MB** and
 this app accepts uploads up to 10 MB, so `apps/api/src/lib/targets.js` splits a target
@@ -407,41 +489,37 @@ but it is not free.
 
 ### Cross-origin details
 
-The app is on another origin, which changes two things that would otherwise fail
-silently:
+The one thing still crossing an origin is the scan beacon, and it would fail
+silently if sent naively:
 
-- **`targetUrl` is absolute.** Built from the request URL, because a relative
-  path would resolve against the *app's* origin and 404.
 - **The scan beacon is `text/plain`.** `navigator.sendBeacon` cannot perform a
   CORS preflight, and `application/json` makes the request non-simple — the
   report would vanish without an error. The Worker parses the body as JSON
-  regardless of what the header claims. For the same reason the client only
-  sends `content-type` when there is actually a body, so the manifest fetch on
-  the critical path costs zero preflights.
+  regardless of what the header claims.
+
+Targets used to be the other case here: the API built an absolute `targetUrl`,
+because a relative path would have resolved against the *app's* origin and
+404ed. Now that resolving against the app's origin is exactly right, the URL is
+relative and the problem is gone.
 
 ## Deploying
 
-Two independent deploys. Neither needs the other to be redeployed.
-
-### apps/api — Workers
-
-```bash
-npm run db:create                 # prints a database_id
-# paste it into apps/api/wrangler.jsonc -> d1_databases[0].database_id
-npm run db:migrate:remote         # apply migrations to the real database
-npm run deploy:api
-npm run db:seed -- https://treasure-ar-api.<your-subdomain>.workers.dev
-```
-
-Set `CORS_ORIGIN` in `apps/api/wrangler.jsonc` to the Pages origin before going
-public. `*` is a development default, not a deployment one.
-
-`db:seed` goes through the public API rather than generating SQL for a reason: a
-`.mind` bundle is megabytes of binary, D1 caps a SQL statement at 100 KB, and a
-hex literal of the file would be several times larger than the file itself. The
-bytes have to arrive over HTTP.
+Two independent deploys, and the app half stands alone: a Pages deploy with a
+compiled target in `public/targets/` is a working hunt with no Worker at all.
+Deploy the Worker only if you want scan analytics.
 
 ### apps/web — Pages
+
+```bash
+npm run build        # no VITE_API_BASE: a self-contained hunt, analytics off
+npm run deploy:web
+```
+
+Make sure `apps/web/public/targets/<id>.mind` exists before building — it is
+git-ignored, so CI and a fresh clone both start without it. `/studio` produces
+it in seconds.
+
+To record scans, point the build at a deployed Worker:
 
 ```bash
 VITE_API_BASE=https://treasure-ar-api.<your-subdomain>.workers.dev npm run build
@@ -457,7 +535,23 @@ settings, because the build runs from the repo root:
 | Build command | `npm run build` |
 | Output directory | `dist` |
 
-and `VITE_API_BASE` as a build-time environment variable.
+and `VITE_API_BASE` as a build-time environment variable if you want analytics.
+
+### apps/api — Workers (optional)
+
+```bash
+npm run db:create                 # prints a database_id
+# paste it into apps/api/wrangler.jsonc -> d1_databases[0].database_id
+npm run db:migrate:remote         # apply migrations to the real database
+npm run deploy:api
+```
+
+Set `CORS_ORIGIN` in `apps/api/wrangler.jsonc` to the Pages origin before going
+public. `*` is a development default, not a deployment one.
+
+Nothing needs seeding: the scans table fills itself, and the hunt is in the
+bundle. `npm run db:seed` still exists and still works against the experience
+endpoints, but no part of the app reads what it writes.
 
 ### Pages routing
 
@@ -472,10 +566,16 @@ and `VITE_API_BASE` as a build-time environment variable.
   the catch-all — Pages matches top to bottom, and the fallback would otherwise
   swallow them and quietly render the app at the old URL instead of redirecting.
 
-`_headers` marks `/assets/*` immutable (Vite fingerprints them), keeps
-`index.html` uncached so a deploy is actually visible, and sets the
-`Permissions-Policy` that `getUserMedia` is gated on alongside the secure
-context.
+One consequence of that catch-all is worth knowing, because it is silent: a
+request for a target that was never compiled does not 404, it returns
+`index.html` with a 200. That is why the check in `lib/clues.js` looks at the
+content type and not just the status.
+
+`_headers` marks `/assets/*` immutable (Vite fingerprints them), gives
+`/targets/*` an explicit `application/octet-stream` (the other half of that same
+check) with a day of caching, keeps `index.html` uncached so a deploy is
+actually visible, and sets the `Permissions-Policy` that `getUserMedia` is gated
+on alongside the secure context.
 
 ## Layout
 
@@ -490,11 +590,12 @@ apps/web/                       -> Cloudflare Pages
   public/
     _redirects                  SPA fallback + legacy .html redirects
     _headers                    cache + security headers
+    targets/<id>.mind           compiled tracking targets (git-ignored)
     models/lantern.glb          generated by `npm run make:model`
   src/
     main.jsx                    root render (no StrictMode - see above)
     App.jsx                     routes; operator pages are lazy
-    api/client.js               fetch wrappers, API base, session id, beacon
+    api/client.js               scan beacon, session id, analytics on/off
     ar/
       aframe.js                 ordered dynamic import of A-Frame + MindAR
       ArScene.jsx               the scene, and the whole camera lifecycle
@@ -502,13 +603,14 @@ apps/web/                       -> Cloudflare Pages
       overlays/                 one component per overlay type
     components/                 HUD, panels, camera controls, buttons, shell
     hooks/                      camera state, experience fetch, page visibility
+    lib/clues.js                hard-coded hunts - the content you edit
     lib/markers.js              generated marker artwork (SVG, seeded)
     lib/describeError.js        raw failure -> copy a user can act on
     pages/                      one per route
     styles/ui.css               Tailwind entry, @theme tokens, A-Frame overrides
   tools/                        model generator, target compiler, test runners
 
-apps/api/                       -> Cloudflare Workers
+apps/api/                       -> Cloudflare Workers (scan analytics; optional)
   wrangler.jsonc                Worker name, D1 binding, vars
   src/
     index.js                    CORS, security headers, routing, error shape
@@ -531,4 +633,4 @@ Copy `.env.example` to `.env`. Everything has a working default.
 | `MAX_SCANS` | `wrangler.jsonc` vars | `10000` | scan rows kept per experience |
 | `API_PORT` | local | `8787` | port `wrangler dev` listens on; Vite proxies here |
 | `TLS_CERT` / `TLS_KEY` | local | `certs/*.pem` | present, so both dev servers use HTTPS |
-| `VITE_API_BASE` | build | empty | absolute URL of the deployed Worker; empty in dev |
+| `VITE_API_BASE` | build | empty | absolute URL of the deployed Worker. Empty means scan analytics is off and the hunt is fully self-contained; empty is also correct in dev, where Vite proxies `/api` |

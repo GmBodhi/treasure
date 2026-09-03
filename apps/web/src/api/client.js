@@ -9,6 +9,27 @@ const SESSION_KEY = 'treasure-ar.session';
  */
 const API_BASE = (import.meta.env.VITE_API_BASE ?? '').replace(/\/$/, '');
 
+/**
+ * Scan analytics is the only thing left that needs a server, and it is
+ * optional — the hunt itself is a static bundle plus a compiled target.
+ *
+ * A built app with no `VITE_API_BASE` has no API to talk to, so reporting is
+ * switched off rather than left to fire at an origin that will 404. In dev the
+ * proxy is always there, so it stays on.
+ */
+export const ANALYTICS_ENABLED = Boolean(API_BASE) || import.meta.env.DEV;
+
+/**
+ * Whether a Worker was actually pointed at, as opposed to merely being
+ * reachable through the dev proxy if someone happens to be running one.
+ *
+ * The operator console uses this to decide whether to pull analytics on mount:
+ * the hunt no longer needs an API, so `npm run dev:web` on its own is a normal
+ * way to work, and firing a request at a proxy with nothing behind it would put
+ * a 502 in everyone's console for a page that renders fine without it.
+ */
+export const API_CONFIGURED = Boolean(API_BASE);
+
 const url = (path) => `${API_BASE}${path}`;
 
 /** Stable per-tab id so the server can count unique visitors without cookies. */
@@ -24,8 +45,7 @@ export function sessionId() {
 async function request(path, options = {}) {
   // Only send content-type when there is a body. On a cross-origin GET the
   // header alone makes the request non-simple, so the browser inserts a CORS
-  // preflight — a wasted round-trip on the critical path before the camera
-  // can open, on exactly the mobile connections that can least afford one.
+  // preflight — a wasted round-trip for no benefit.
   const headers = options.body
     ? { 'content-type': 'application/json', ...options.headers }
     : { ...options.headers };
@@ -39,22 +59,13 @@ async function request(path, options = {}) {
 }
 
 export const api = {
-  listExperiences: () => request('/api/experiences'),
-
-  getExperience: (id) => request(`/api/experiences/${encodeURIComponent(id)}`),
-
-  /**
-   * True when the experience's compiled .mind is actually stored. `targetUrl`
-   * arrives absolute from the API, so it is used as-is rather than re-based.
-   */
-  hasTarget: (targetUrl) =>
-    fetch(targetUrl, { method: 'HEAD' }).then((r) => r.ok, () => false),
-
   /**
    * Report a marker hit. Uses sendBeacon when available so the report survives
    * the user backgrounding the tab right after a scan.
    */
   reportScan(payload) {
+    if (!ANALYTICS_ENABLED) return Promise.resolve(null);
+
     const body = JSON.stringify({ ...payload, sessionId: sessionId() });
     if (navigator.sendBeacon) {
       // text/plain, not application/json: a beacon with a non-simple content
@@ -79,17 +90,4 @@ export const api = {
 
   summary: (experienceId) =>
     request(`/api/scans/summary${experienceId ? `?experienceId=${encodeURIComponent(experienceId)}` : ''}`),
-
-  /** Attach a compiled .mind bundle to an experience. */
-  async uploadTarget(experienceId, file, filename = `${experienceId}.mind`) {
-    const body = new FormData();
-    body.append('target', file, filename);
-    const res = await fetch(url(`/api/experiences/${encodeURIComponent(experienceId)}/target`), {
-      method: 'POST',
-      body,
-    });
-    const payload = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(payload.error ?? `${res.status} ${res.statusText}`);
-    return payload;
-  },
 };
