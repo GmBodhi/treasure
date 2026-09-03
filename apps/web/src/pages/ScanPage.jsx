@@ -5,6 +5,7 @@ import ArScene from '../ar/ArScene.jsx';
 import { loadAframe } from '../ar/aframe.js';
 import CameraControls from '../components/CameraControls.jsx';
 import ErrorPanel from '../components/ErrorPanel.jsx';
+import FoundReveal from '../components/FoundReveal.jsx';
 import LoadingPanel from '../components/LoadingPanel.jsx';
 import ScanHud from '../components/ScanHud.jsx';
 import StationPanel from '../components/StationPanel.jsx';
@@ -35,6 +36,12 @@ export default function ScanPage() {
   const [hint, setHint] = useState('Frame the marker');
   const [manualPause, setManualPause] = useState(false);
 
+  // Whether the cinematic reveal is on screen. Deliberately separate from
+  // `state`: a find should hold on screen even if the marker later drops out
+  // of frame (phone lowered to read it), which `state` does not — see
+  // `handleLost` below.
+  const [revealed, setRevealed] = useState(false);
+
   // The tab being hidden and the user pressing pause are the same thing to the
   // tracker, but only one of them should survive coming back to the tab.
   const paused = manualPause || hidden;
@@ -57,10 +64,32 @@ export default function ScanPage() {
   const stopAr = useCallback(() => {
     setArActive(false);
     setMarker(null);
+    setRevealed(false);
     setManualPause(false);
     camera.close();
     navigate('/');
   }, [camera, navigate]);
+
+  /**
+   * The reveal's own CTA. Not `stopAr`, because the destination is whatever
+   * the station's content says (`cta.href`) rather than always the level
+   * space — the same reveal has to work for a level's "Continue" today and
+   * for whatever else a future station's manifest points at.
+   */
+  const handleContinue = useCallback(
+    (href) => {
+      const target = href || '/';
+      const external = /^https?:\/\//.test(target);
+      setArActive(false);
+      setMarker(null);
+      setRevealed(false);
+      setManualPause(false);
+      camera.close();
+      if (external) window.open(target, '_blank', 'noopener');
+      navigate(external ? '/' : target);
+    },
+    [camera, navigate],
+  );
 
   /**
    * Manual pause. Frame-by-frame feature detection is the expensive part of
@@ -152,6 +181,7 @@ export default function ScanPage() {
     const level = levelRef.current;
     setMarker(hit);
     setState('found');
+    setRevealed(true);
     navigator.vibrate?.(18);
     completeRef.current(level.n);
     api.reportScan({ experienceId: 'breadcrumb', markerId: hit.id, targetIndex: level.n });
@@ -195,6 +225,8 @@ export default function ScanPage() {
         />
       )}
 
+      {revealed && <FoundReveal marker={marker} onContinue={handleContinue} onClose={stopAr} />}
+
       <main
         data-state={state}
         className="group/ui fixed inset-0 z-10 grid"
@@ -205,7 +237,6 @@ export default function ScanPage() {
           status={paused ? 'Paused' : state === 'found' ? 'Station found' : 'Scanning'}
           hint={paused ? 'Camera paused to save battery' : hint}
           paused={paused}
-          marker={marker}
           total={1}
           foundCount={0}
           onClose={stopAr}
