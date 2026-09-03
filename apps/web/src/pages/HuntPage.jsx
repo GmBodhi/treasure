@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../components/Button.jsx';
 import { useHunt } from '../hooks/useHunt.js';
+import Prose from '../components/Prose.jsx';
 import { LEVEL_COUNT, isKnownTeam } from '../lib/hunt.js';
 
 const SHELL = 'mx-auto w-[min(560px,100%)] px-5 pt-[calc(28px+env(safe-area-inset-top))] pb-[calc(40px+env(safe-area-inset-bottom))]';
@@ -126,7 +127,7 @@ function LevelDetail({ level, status }) {
               the grid — not the story they already read. */}
           <div className="mb-4 rounded-xl border border-accent/30 bg-accent/[0.06] px-4 py-3.5">
             <p className={EYEBROW}>Recovered</p>
-            <p className="mt-1 whitespace-pre-wrap break-words text-[15px]">{level.station.reveal}</p>
+            <Prose className="mt-1 break-words text-[15px] leading-relaxed" html={level.station.reveal} />
             {level.station.revealImage && (
               <img
                 src={level.station.revealImage}
@@ -146,7 +147,7 @@ function LevelDetail({ level, status }) {
       <div className="rounded-xl border border-stroke bg-white/[0.03] px-4 py-3.5">
         <p className={EYEBROW}>{done ? 'Found at' : 'Go to'}</p>
         <p className="mt-1 text-[15px]">{level.station.location}</p>
-        <p className={`${MONO} mt-1`}>{level.station.brief}</p>
+        <Prose className={`${MONO} mt-1 leading-relaxed`} html={level.station.brief} />
       </div>
 
       {!done && (

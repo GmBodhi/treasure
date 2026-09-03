@@ -1,6 +1,13 @@
 import Primitives from './Primitives.jsx';
 
 /**
+ * A-Frame text is geometry, not markup — an `<em>` reaching `a-text` renders as
+ * the literal characters. Clue copy is authored as HTML, so anything routed
+ * into 3D has to be flattened first.
+ */
+const stripTags = (text) => String(text).replace(/<[^>]*>/g, '');
+
+/**
  * Card overlay. Units are marker widths: the tracked image is exactly 1 wide,
  * so the type has to be sized against that, not against pixels.
  */
@@ -8,6 +15,13 @@ function Card({ marker, overlay }) {
   const width = overlay.width ?? 1;
   const height = overlay.height ?? 0.552;
   const accent = overlay.color ?? marker.accent ?? '#101418';
+
+  // The card is 3D text on the marker, so it wants a short line — not the
+  // reveal copy, which is long-form HTML meant for a screen you can scroll.
+  // `overlay.title`/`overlay.body` are how a station says what belongs in AR;
+  // falling back to the marker's own fields keeps older overlays working.
+  const title = overlay.title ?? marker.title ?? '';
+  const body = stripTags(overlay.body ?? marker.body ?? '');
 
   return (
     <>
@@ -20,7 +34,7 @@ function Card({ marker, overlay }) {
         animation="property: scale; from: 0.86 0.86 1; to: 1 1 1; dur: 320; easing: easeOutBack"
       />
       <a-text
-        value={marker.title ?? ''}
+        value={title}
         color={marker.accent ?? '#f0b429'}
         align="center"
         width={(width * 0.92).toFixed(3)}
@@ -28,7 +42,7 @@ function Card({ marker, overlay }) {
         position={`0 ${(height * 0.22).toFixed(3)} 0.02`}
       />
       <a-text
-        value={marker.body ?? ''}
+        value={body}
         color="#f2f5f8"
         align="center"
         width={(width * 0.8).toFixed(3)}

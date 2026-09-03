@@ -1,4 +1,5 @@
 import Button from './Button.jsx';
+import Prose from './Prose.jsx';
 import { EYEBROW, LEDE, PANEL_BASE, PANEL_INNER, SHOW_INTRO, TITLE } from './panels.js';
 
 const BULLET =
@@ -19,7 +20,7 @@ export default function StationPanel({ level, onStart, onBack }) {
       <div className={PANEL_INNER}>
         <p className={EYEBROW}>Level {level?.n} · {level?.station?.location}</p>
         <h1 className={TITLE}>{level?.title ?? 'Station'}</h1>
-        <p className={LEDE}>{level?.station?.brief}</p>
+        <Prose className={LEDE} html={level?.station?.brief} />
 
         <ul className="mb-7 grid gap-2 list-none p-0">
           <li className={BULLET}>Good, even light</li>

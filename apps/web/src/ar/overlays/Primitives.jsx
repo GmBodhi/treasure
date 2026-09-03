@@ -24,7 +24,12 @@ function renderNode(node, key) {
   }
 
   const props = { key };
-  for (const [name, value] of Object.entries(node.attrs ?? {})) {
+  for (const [rawName, value] of Object.entries(node.attrs ?? {})) {
+    // A-Frame spells every attribute with hyphens (`radius-inner`), but the
+    // underscored form is an easy slip when authoring and would otherwise be
+    // dropped in silence — leaving a primitive rendered at its default size
+    // with nothing in the console to explain why.
+    const name = rawName.replace(/_/g, '-');
     if (!ATTR_NAME.test(name) || name.startsWith('on')) continue;
     // A-Frame parses every component value from its string form.
     props[name] = String(value);
@@ -35,5 +40,8 @@ function renderNode(node, key) {
 }
 
 export default function Primitives({ overlay }) {
-  return <Fragment>{(overlay.nodes ?? []).map((node, i) => renderNode(node, i))}</Fragment>;
+  // `nodes` is a list of siblings; `tree` is a single root. Both are natural
+  // ways to author an overlay, and supporting each costs one line.
+  const roots = overlay.nodes ?? (overlay.tree ? [overlay.tree] : []);
+  return <Fragment>{roots.map((node, i) => renderNode(node, i))}</Fragment>;
 }
