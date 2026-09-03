@@ -1,4 +1,3 @@
-import MarkerSheet from './MarkerSheet.jsx';
 import Reticle from './Reticle.jsx';
 import { SHOW_HUD } from './panels.js';
 
@@ -8,8 +7,12 @@ import { SHOW_HUD } from './panels.js';
  * `pointer-events-none` on the container with `auto` on the children is what
  * lets the user still interact with the scene between the controls — the HUD
  * covers the whole viewport but only its own chrome is clickable.
+ *
+ * The find itself is not shown here: once a target is found, `FoundReveal`
+ * takes over the whole screen above this. This HUD only handles the
+ * framing/scanning state leading up to that.
  */
-export default function ScanHud({ status, hint, marker, total, foundCount, onClose, controls, paused }) {
+export default function ScanHud({ status, hint, total, foundCount, onClose, controls, paused }) {
   return (
     <section
       className={
@@ -54,8 +57,6 @@ export default function ScanHud({ status, hint, marker, total, foundCount, onClo
         </p>
         {controls}
       </div>
-
-      <MarkerSheet marker={marker} total={total} />
 
       {foundCount > 0 && total > 1 && (
         <div className="absolute right-4 top-[calc(64px+env(safe-area-inset-top))] rounded-full border border-stroke bg-surface px-3 py-1.5 text-xs text-muted">
