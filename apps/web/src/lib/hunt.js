@@ -49,8 +49,24 @@ export const TRACKING = {
  * part of the story. Everything under `variants` is what differs between the two
  * physical versions: where it is, what the marker is, and how the overlay reads.
  *
- * `brief` is what the player is told *before* they go — the clue that sends them
- * to the station. `reveal` is what the AR overlay shows once they find it.
+ * Station fields:
+ *
+ *   id           the compiled target's filename, minus `.mind`.
+ *   location     where on campus it is. Shown before and after.
+ *   marker       an organiser's note on which fixture the photo was taken of.
+ *                Never shown to players — it is what /studio and /admin list so
+ *                you can tell twenty stations apart.
+ *   brief        what sends them there. Shown in the level space and again on
+ *                the camera screen, because that is the screen someone is
+ *                actually holding while they look for the thing.
+ *   reveal       the payload. What the team walks away with — the hash, the
+ *                ciphertext, the room number. Shown on the sheet at the moment
+ *                of the scan, and kept in the level space to re-read later.
+ *   revealImage  optional path under public/ for a payload that is not text: a
+ *                cipher grid, a QR fragment, a chart.
+ *   overlay      what renders in 3D on the marker itself. See
+ *                ar/overlays/Overlay.jsx — card | primitives | model | image |
+ *                video | none. Omitted means a card.
  */
 export const LEVELS = [
   {

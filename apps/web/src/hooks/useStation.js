@@ -56,7 +56,10 @@ export function useStation(level) {
               title: level.title,
               subtitle: `Level ${level.n} unlocked`,
               label: `${level.n} of ${LEVEL_COUNT}`,
-              body: level.story,
+              // The reveal, not the story: at the marker, what a team needs is
+              // the thing they walk away with. The narrative beat is waiting for
+              // them back in the level space.
+              body: level.station.reveal ?? level.story,
               cta: { label: 'Continue', href: '/' },
               overlay: level.station.overlay ?? { type: 'card' },
             },
