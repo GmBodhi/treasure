@@ -285,9 +285,8 @@ export default function ArScene({
                 width="0.15"
                 height="0.15"
                 depth="0.15"
-                color="#f0b429"
-                animation__spinx="property: rotation.x; from: 0; to: 360; loop: true; dur: 2600; easing: linear"
-                animation__spiny="property: rotation.y; from: 0; to: 360; loop: true; dur: 1800; easing: linear"
+                material="color: #2ecc71; wireframe: true; wireframeLinewidth: 1; shader: flat; transparent: true; opacity: 0.85"
+                animation="property: rotation.y; from: 0; to: 360; loop: true; dur: 3200; easing: linear"
               />
             </a-entity>
           </a-entity>

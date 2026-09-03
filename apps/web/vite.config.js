@@ -26,7 +26,7 @@ function devTls() {
   return { cert: fs.readFileSync(CERT), key: fs.readFileSync(KEY) };
 }
 
-const https = null;
+const https = devTls();
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
