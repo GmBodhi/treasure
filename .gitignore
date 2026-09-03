@@ -11,5 +11,5 @@ certs/*.pem
 apps/*/.wrangler/
 
 # Compiled targets are large and reproducible from the target studio.
-apps/web/public/targets/*.mind
-apps/api/seed/targets/*.mind
+# apps/web/public/targets/*.mind
+# apps/api/seed/targets/*.mind
