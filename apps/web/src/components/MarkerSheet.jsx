@@ -47,7 +47,10 @@ export default function MarkerSheet({ marker, total }) {
           <span />
         )}
         <span className="text-right text-xs text-paper/40">
-          {marker ? `#${marker.targetIndex + 1} of ${total}` : ''}
+          {/* Each scan runs against a single-target scene, so the marker's own
+              index says nothing worth reading. `label` is what the caller wants
+              counted here — the team's place in the hunt. */}
+          {marker ? (marker.label ?? `#${marker.targetIndex + 1} of ${total}`) : ''}
         </span>
       </div>
     </aside>

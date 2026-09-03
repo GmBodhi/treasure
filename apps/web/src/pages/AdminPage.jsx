@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { ANALYTICS_ENABLED, API_CONFIGURED, api } from '../api/client.js';
 import PageShell, { Card, SectionTitle } from '../components/PageShell.jsx';
-import { listExperiences } from '../lib/clues.js';
+import { LEVELS, LEVEL_COUNT, TEAMS, listStations, routeFor, targetExists } from '../lib/hunt.js';
 
-const ROW = 'flex items-baseline justify-between gap-4';
 const MONO = 'font-mono text-[13px] text-muted';
+const CELL = 'px-2 py-1.5 text-left align-top';
 
 function Stat({ value, label }) {
   return (
@@ -16,10 +15,35 @@ function Stat({ value, label }) {
   );
 }
 
+/**
+ * Which of the twenty targets are actually compiled and deployed.
+ *
+ * The single most useful thing this page does on the morning of the event: a
+ * station whose .mind was never saved looks completely fine until a team is
+ * standing in front of it.
+ */
+function useTargetReadiness(stations) {
+  const [ready, setReady] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all(stations.map((s) => targetExists(s.targetUrl))).then((results) => {
+      if (cancelled) return;
+      setReady(Object.fromEntries(stations.map((s, i) => [s.id, results[i]])));
+    });
+    return () => {
+      cancelled = true;
+    };
+    // The station list is a constant for the life of the bundle.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return ready;
+}
+
 export default function AdminPage() {
-  // Hunts are hard-coded, so this list is available synchronously and the page
-  // has something to show even with no API reachable at all.
-  const experiences = listExperiences();
+  const stations = listStations();
+  const ready = useTargetReadiness(stations);
   const [summary, setSummary] = useState(null);
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
@@ -28,51 +52,112 @@ export default function AdminPage() {
     setLoading(true);
     setMessage('');
     try {
-      setSummary(await api.summary(experiences[0]?.id));
+      setSummary(await api.summary('breadcrumb'));
     } catch (err) {
       setMessage(`Could not reach the API: ${err.message}`);
     } finally {
       setLoading(false);
     }
-    // The hard-coded list is stable for the life of the bundle.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Only pull on mount when a Worker was actually configured. Otherwise the
-  // page is complete without it and the request would just 502 into the console.
+  // Only pull on mount when a Worker was actually configured. The hunt needs no
+  // API at all, so firing at a proxy with nothing behind it would just put a 502
+  // in the console of a page that renders fine without it.
   useEffect(() => {
     if (API_CONFIGURED) load();
   }, [load]);
 
+  const compiled = ready ? Object.values(ready).filter(Boolean).length : null;
+
   return (
     <PageShell
-      title="Treasure AR console"
-      lede="Hunts defined in src/lib/clues.js, and the scan analytics collected by the API."
+      title="Operation Breadcrumb console"
+      lede="Ten story levels, each in two places. Every team plays all ten in order; which of the two they get at each level is their route."
+      width="max-w-[1000px]"
     >
-      <SectionTitle>Hunts</SectionTitle>
-      {experiences.map((exp) => (
-        <Card key={exp.id} className="mb-3">
-          <div className={ROW}>
-            <div>
-              <strong>{exp.name}</strong>
-              <div className={MONO}>
-                {exp.id} · {exp.markerCount} clues · public/targets/{exp.targetFile}
-              </div>
-            </div>
-            <Link className={`${MONO} text-accent no-underline hover:underline`} to={`/?e=${encodeURIComponent(exp.id)}`}>
-              open AR →
-            </Link>
-          </div>
-        </Card>
-      ))}
-      <Card>
+      <SectionTitle>Stations</SectionTitle>
+      <Card className="mb-3">
         <div className={MONO}>
-          Edit <span className="text-paper">apps/web/src/lib/clues.js</span> to add or change a
-          clue, then recompile its target in{' '}
-          <Link className="text-accent no-underline hover:underline" to="/studio">
-            the target studio
-          </Link>
-          .
+          {compiled === null
+            ? 'Checking compiled targets…'
+            : `${compiled} of ${stations.length} targets compiled and deployed.`}
+        </div>
+      </Card>
+
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse text-[13px]">
+          <thead>
+            <tr className="text-muted">
+              <th className={CELL}>id</th>
+              <th className={CELL}>level</th>
+              <th className={CELL}>location</th>
+              <th className={CELL}>marker</th>
+              <th className={CELL}>target</th>
+            </tr>
+          </thead>
+          <tbody>
+            {stations.map((s) => (
+              <tr key={s.id} className="border-t border-white/[0.07]">
+                <td className={`${CELL} font-mono`}>{s.id}</td>
+                <td className={CELL}>
+                  {s.level}{s.variant} · {s.title}
+                </td>
+                <td className={CELL}>{s.location}</td>
+                <td className={`${CELL} text-muted`}>{s.marker}</td>
+                <td className={`${CELL} font-mono`}>
+                  {ready === null ? (
+                    <span className="text-muted">…</span>
+                  ) : ready[s.id] ? (
+                    <span className="text-ok">ready</span>
+                  ) : (
+                    <span className="text-warn">missing</span>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <SectionTitle>Team routes</SectionTitle>
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse text-[13px]">
+          <thead>
+            <tr className="text-muted">
+              <th className={CELL}>team</th>
+              {LEVELS.map((level) => (
+                <th key={level.id} className={CELL} title={level.title}>
+                  {level.n}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {TEAMS.map((team) => {
+              const route = routeFor(team);
+              return (
+                <tr key={team} className="border-t border-white/[0.07]">
+                  <td className={`${CELL} font-mono`}>{team}</td>
+                  {route.split('').map((variant, i) => (
+                    <td
+                      key={LEVELS[i].id}
+                      className={`${CELL} font-mono ${variant === 'A' ? 'text-accent' : 'text-ok'}`}
+                      title={LEVELS[i].variants[variant].location}
+                    >
+                      {variant}
+                    </td>
+                  ))}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <Card className="mt-3">
+        <div className={MONO}>
+          Every route has five A&apos;s and five B&apos;s, so no team spends the run on one half of
+          campus. Hover a cell for the location. Progress lives on each team&apos;s own device — if a
+          phone dies, the level space has a reset, and a team can be walked back to where they were.
         </div>
       </Card>
 
@@ -81,8 +166,8 @@ export default function AdminPage() {
         <>
           <div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-3">
             <Stat value={summary?.totalScans ?? '–'} label="total scans" />
-            <Stat value={summary?.uniqueSessions ?? '–'} label="unique sessions" />
-            <Stat value={summary?.markers?.length ?? '–'} label="clues hit" />
+            <Stat value={summary?.uniqueSessions ?? '–'} label="unique devices" />
+            <Stat value={summary?.markers?.length ?? '–'} label={`stations hit of ${LEVEL_COUNT * 2}`} />
           </div>
 
           {!API_CONFIGURED && (
@@ -100,11 +185,11 @@ export default function AdminPage() {
               summary.markers.map((row, i) => (
                 <div
                   key={row.markerId}
-                  className={`${ROW} ${i > 0 ? 'mt-2.5 border-t border-white/[0.07] pt-2.5' : ''}`}
+                  className={`flex items-baseline justify-between gap-4 ${i > 0 ? 'mt-2.5 border-t border-white/[0.07] pt-2.5' : ''}`}
                 >
-                  <span>{row.markerId}</span>
+                  <span className="font-mono">{row.markerId}</span>
                   <span className={MONO}>
-                    {row.scans} scans · {row.uniqueSessions} sessions · {row.avgDwellMs ?? '–'} ms avg dwell
+                    {row.scans} scans · {row.uniqueSessions} devices · {row.avgDwellMs ?? '–'} ms avg dwell
                   </span>
                 </div>
               ))
@@ -120,7 +205,7 @@ export default function AdminPage() {
           <div className={MONO}>
             Analytics is off. The hunt itself needs no server — set{' '}
             <span className="text-paper">VITE_API_BASE</span> at build time to point this build at a
-            deployed Worker and scans will be recorded.
+            deployed Worker and station hits will be recorded.
           </div>
         </Card>
       )}

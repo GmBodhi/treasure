@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import ArScene from '../ar/ArScene.jsx';
 import { loadAframe } from '../ar/aframe.js';
-import { getExperience } from '../lib/clues.js';
+import { getExperience } from '../lib/demoExperience.js';
 import { MARKERS, markerImage } from '../lib/markers.js';
 
 /**

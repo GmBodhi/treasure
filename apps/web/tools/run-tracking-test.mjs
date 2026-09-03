@@ -7,9 +7,18 @@
  */
 import puppeteer from 'puppeteer';
 
+/** Chrome's location differs per platform; CHROME_PATH overrides all of it. */
+function chromePath() {
+  if (process.env.CHROME_PATH) return process.env.CHROME_PATH;
+  if (process.platform === 'darwin')
+    return '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+  if (process.platform === 'win32')
+    return 'C:/Program Files/Google/Chrome/Application/chrome.exe';
+  return '/usr/bin/google-chrome';
+}
+
 const BASE = process.argv[2] ?? process.env.BASE_URL ?? 'https://192.168.1.4:5173';
-const CHROME =
-  process.env.CHROME_PATH ?? 'C:/Program Files/Google/Chrome/Application/chrome.exe';
+const CHROME = chromePath();
 
 const browser = await puppeteer.launch({
   executablePath: CHROME,

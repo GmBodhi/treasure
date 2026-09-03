@@ -26,7 +26,7 @@ function devTls() {
   return { cert: fs.readFileSync(CERT), key: fs.readFileSync(KEY) };
 }
 
-const https = devTls();
+const https = null;
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
@@ -47,6 +47,7 @@ export default defineConfig({
   server: {
     host: true,
     port: 5173,
+    allowedHosts: true,
     https,
     proxy: {
       // Proxying keeps dev same-origin, so the cross-origin path the Worker

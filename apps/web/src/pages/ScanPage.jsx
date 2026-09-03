@@ -1,68 +1,69 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { api } from '../api/client.js';
 import ArScene from '../ar/ArScene.jsx';
 import { loadAframe } from '../ar/aframe.js';
 import CameraControls from '../components/CameraControls.jsx';
 import ErrorPanel from '../components/ErrorPanel.jsx';
-import IntroPanel from '../components/IntroPanel.jsx';
 import LoadingPanel from '../components/LoadingPanel.jsx';
 import ScanHud from '../components/ScanHud.jsx';
+import StationPanel from '../components/StationPanel.jsx';
 import { useCamera } from '../hooks/useCamera.js';
-import { useExperience } from '../hooks/useExperience.js';
+import { useHunt } from '../hooks/useHunt.js';
 import { usePageHidden } from '../hooks/usePageVisibility.js';
-import { DEFAULT_EXPERIENCE_ID } from '../lib/clues.js';
+import { useStation } from '../hooks/useStation.js';
 import { describeError } from '../lib/describeError.js';
 
+/**
+ * The camera, pointed at exactly one station: the one the team's current level
+ * sends them to. Finding it is what unlocks the next level.
+ */
 export default function ScanPage() {
-  // ?e=<id> lets one deployment serve several hunts; defaults to the demo.
-  const [params] = useSearchParams();
-  const experienceId = params.get('e') ?? DEFAULT_EXPERIENCE_ID;
+  const navigate = useNavigate();
+  const { team, current, finished, complete } = useHunt();
+  const { status: loadStatus, scene, error: loadError } = useStation(current);
 
-  const { status: loadStatus, experience, error: loadError } = useExperience(experienceId);
   const hidden = usePageHidden();
   const camera = useCamera();
 
   // 'intro' | 'loading' | 'scanning' | 'found' | 'error'
   const [state, setState] = useState('loading');
-  const [loadingLabel, setLoadingLabel] = useState('Fetching experience…');
+  const [loadingLabel, setLoadingLabel] = useState('Preparing station…');
   const [error, setError] = useState(null);
   const [arActive, setArActive] = useState(false);
   const [marker, setMarker] = useState(null);
-  const [hint, setHint] = useState('Frame a marker');
-  const [found, setFound] = useState(() => new Set());
+  const [hint, setHint] = useState('Frame the marker');
   const [manualPause, setManualPause] = useState(false);
 
   // The tab being hidden and the user pressing pause are the same thing to the
   // tracker, but only one of them should survive coming back to the tab.
   const paused = manualPause || hidden;
 
-  const total = experience?.markers?.length ?? 0;
-  // The AR callbacks fire from DOM listeners, so they read the id off a ref
-  // rather than closing over a value that a re-render could stale out.
-  const experienceRef = useRef(experience);
-  experienceRef.current = experience;
+  // The AR callbacks fire from DOM listeners, so they read through refs rather
+  // than closing over values a re-render could stale out.
+  const levelRef = useRef(current);
+  levelRef.current = current;
+  const completeRef = useRef(complete);
+  completeRef.current = complete;
 
   useEffect(() => {
-    if (loadStatus === 'ready') {
-      setState('intro');
-      document.title = `${experience.name} — Treasure AR`;
-    } else if (loadStatus === 'error') {
+    if (loadStatus === 'ready') setState('intro');
+    else if (loadStatus === 'error') {
       setError(loadError);
       setState('error');
     }
-  }, [loadStatus, experience, loadError]);
+  }, [loadStatus, loadError]);
 
   const stopAr = useCallback(() => {
     setArActive(false);
     setMarker(null);
     setManualPause(false);
     camera.close();
-    setState('intro');
-  }, [camera]);
+    navigate('/');
+  }, [camera, navigate]);
 
   /**
-   * Manual pause. The frame-by-frame feature detection is the expensive part of
+   * Manual pause. Frame-by-frame feature detection is the expensive part of
    * running AR, so stopping it is most of the battery saving; disabling the
    * track stops the sensor delivering frames on top of that, and the torch is
    * killed outright because leaving a light on during a pause is indefensible.
@@ -104,9 +105,7 @@ export default function ScanPage() {
 
   /**
    * Switching lenses means a new MediaStream, and MindAR reads its stream once
-   * at start — so the scene is torn down and rebuilt. Keying <ArScene> on the
-   * device id would do the same thing, but doing it explicitly keeps the
-   * loading copy honest about what is happening.
+   * at start — so the scene is torn down and rebuilt.
    */
   const switchCamera = useCallback(async () => {
     const next = camera.nextDeviceId();
@@ -117,8 +116,8 @@ export default function ScanPage() {
     setMarker(null);
 
     // A lens can refuse to open — busy, or gone since it was enumerated. Losing
-    // the camera entirely is a much worse outcome than a switch that does
-    // nothing, so fall back to the one that was already working.
+    // the camera entirely is worse than a switch that does nothing, so fall back
+    // to the one that was already working.
     const ok = await startAr(next);
     if (!ok && previous) await startAr(previous);
   }, [camera, startAr]);
@@ -130,7 +129,7 @@ export default function ScanPage() {
   }, [arActive, paused, camera]);
 
   const handleReady = useCallback(() => {
-    setHint('Frame a marker');
+    setHint('Frame the marker');
     setState('scanning');
   }, []);
 
@@ -141,43 +140,52 @@ export default function ScanPage() {
     setState('error');
   }, []);
 
+  /**
+   * The unlock. Detection is the whole gate — there is nothing to type, because
+   * the only way this fires is the tracker matching the one image in the bundle.
+   *
+   * `complete` is idempotent and monotonic, which matters: a marker fires
+   * targetFound every time it re-enters frame, and a team holding a phone
+   * unsteadily will fire it repeatedly.
+   */
   const handleFound = useCallback((hit) => {
+    const level = levelRef.current;
     setMarker(hit);
-    setFound((prev) => new Set(prev).add(hit.id));
     setState('found');
     navigator.vibrate?.(18);
-    api.reportScan({
-      experienceId: experienceRef.current.id,
-      markerId: hit.id,
-      targetIndex: hit.targetIndex,
-    });
+    completeRef.current(level.n);
+    api.reportScan({ experienceId: 'breadcrumb', markerId: hit.id, targetIndex: level.n });
   }, []);
 
   const handleLost = useCallback((hit, dwellMs) => {
-    setHint('Look for the next marker');
+    setHint('Hold the marker in frame');
     setState((prev) => (prev === 'found' ? 'scanning' : prev));
     if (dwellMs == null) return;
     api.reportScan({
-      experienceId: experienceRef.current.id,
+      experienceId: 'breadcrumb',
       markerId: hit.id,
-      targetIndex: hit.targetIndex,
+      targetIndex: levelRef.current?.n,
       dwellMs,
     });
   }, []);
 
   const retry = () => {
     setError(null);
-    if (experience) startAr(camera.deviceId);
-    else window.location.reload();
+    if (scene) startAr(camera.deviceId);
+    else navigate('/');
   };
+
+  // Nothing to scan for: no team on this device, or the trail is already run
+  // out. Either way the level space is the only sensible place to be.
+  if (!team || finished) return <Navigate to="/" replace />;
 
   return (
     <div className="ar-route">
       {/* Mounting the scene opens the camera; unmounting releases it. */}
-      {arActive && experience && (
+      {arActive && scene && (
         <ArScene
           key={camera.deviceId ?? 'default'}
-          experience={experience}
+          experience={scene}
           camera={camera.session}
           paused={paused}
           onReady={handleReady}
@@ -189,18 +197,17 @@ export default function ScanPage() {
 
       <main
         data-state={state}
-        style={marker?.accent ? { '--color-accent': marker.accent } : undefined}
         className="group/ui fixed inset-0 z-10 grid"
       >
-        <IntroPanel experience={experience} onStart={() => startAr()} />
+        <StationPanel level={current} onStart={() => startAr()} onBack={() => navigate('/')} />
         <LoadingPanel label={loadingLabel} />
         <ScanHud
-          status={paused ? 'Paused' : state === 'found' ? 'Marker locked' : 'Scanning'}
+          status={paused ? 'Paused' : state === 'found' ? 'Station found' : 'Scanning'}
           hint={paused ? 'Camera paused to save battery' : hint}
           paused={paused}
           marker={marker}
-          total={total}
-          foundCount={found.size}
+          total={1}
+          foundCount={0}
           onClose={stopAr}
           controls={
             <CameraControls

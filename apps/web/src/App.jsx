@@ -1,10 +1,11 @@
 import { lazy, Suspense } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
-import ScanPage from './pages/ScanPage.jsx';
+import HuntPage from './pages/HuntPage.jsx';
 
-// The operator pages pull in the MindAR compiler and the marker art; keeping
-// them out of the scan bundle matters because the scan page is the one a phone
-// on a cellular connection actually loads.
+// The scan route pulls in A-Frame and MindAR (~1.5 MB), and the operator routes
+// pull in the compiler and the marker art. Neither belongs in the bundle a phone
+// loads to read its current level, which is the screen teams open most.
+const ScanPage = lazy(() => import('./pages/ScanPage.jsx'));
 const MarkersPage = lazy(() => import('./pages/MarkersPage.jsx'));
 const StudioPage = lazy(() => import('./pages/StudioPage.jsx'));
 const AdminPage = lazy(() => import('./pages/AdminPage.jsx'));
@@ -14,7 +15,8 @@ export default function App() {
   return (
     <Suspense fallback={<div className="route-fallback">Loading…</div>}>
       <Routes>
-        <Route path="/" element={<ScanPage />} />
+        <Route path="/" element={<HuntPage />} />
+        <Route path="/scan" element={<ScanPage />} />
         <Route path="/markers" element={<MarkersPage />} />
         <Route path="/studio" element={<StudioPage />} />
         <Route path="/admin" element={<AdminPage />} />

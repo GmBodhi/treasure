@@ -6,14 +6,24 @@ import puppeteer from 'puppeteer';
 
 const BASE = process.argv[2] ?? process.env.APP_BASE ?? 'https://192.168.1.4:5173';
 const ROUTES = [
-  ['/', 'Treasure Demo Hunt'],
+  ['/', 'Operation Breadcrumb'],
   ['/markers', 'Printable markers'],
   ['/studio', 'Target studio'],
-  ['/admin', 'Treasure AR console'],
+  ['/admin', 'Operation Breadcrumb console'],
 ];
 
+/** Chrome's location differs per platform; CHROME_PATH overrides all of it. */
+function chromePath() {
+  if (process.env.CHROME_PATH) return process.env.CHROME_PATH;
+  if (process.platform === 'darwin')
+    return '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+  if (process.platform === 'win32')
+    return 'C:/Program Files/Google/Chrome/Application/chrome.exe';
+  return '/usr/bin/google-chrome';
+}
+
 const browser = await puppeteer.launch({
-  executablePath: process.env.CHROME_PATH ?? 'C:/Program Files/Google/Chrome/Application/chrome.exe',
+  executablePath: chromePath(),
   headless: true,
   ignoreHTTPSErrors: true,
   args: ['--ignore-certificate-errors', '--allow-insecure-localhost'],
