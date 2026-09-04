@@ -45,99 +45,95 @@ export const TRACKING = {
 /**
  * The ten story beats.
  *
- * `story` and `breadcrumb` belong to the beat, so both variants tell the same
- * part of the story. Everything under `variants` is what differs between the two
- * physical versions: where it is, what the marker is, and how the overlay reads.
+ * `breadcrumb` belongs to the beat, so both variants carry the same line.
+ * Everything under `variants` is what differs between the two physical
+ * versions: where it is, what the marker is, what the found card reads, and
+ * how the overlay renders.
  *
  * Station fields:
  *
  *   id           the compiled target's filename, minus `.mind`.
  *   location     where on campus it is. Shown before and after.
  *   marker       an organiser's note on which fixture the photo was taken of.
- *                Never shown to players — it is what /studio and /admin list so
+ *                Never shown to players. It is what /studio and /admin list so
  *                you can tell twenty stations apart.
  *   brief        what sends them there. Shown in the level space and again on
  *                the camera screen, because that is the screen someone is
  *                actually holding while they look for the thing.
- *   reveal       the payload. What the team walks away with — the hash, the
- *                ciphertext, the room number. Shown on the sheet at the moment
- *                of the scan, and kept in the level space to re-read later.
+ *   reveal       the payload, and the whole of what a scan unlocks: the found
+ *                card shows breadcrumb plus this and nothing else. Shown the
+ *                moment the marker is scanned, and kept in the level space to
+ *                re-read later.
  *   revealImage  optional path under public/ for a payload that is not text: a
  *                cipher grid, a QR fragment, a chart.
  *   overlay      what renders in 3D on the marker itself. See
- *                ar/overlays/Overlay.jsx — card | primitives | model | image |
- *                video | none. Omitted means a card.
+ *                ar/overlays/Overlay.jsx: card, primitives, model, image,
+ *                video or none. Omitted means a card.
  */
 export const LEVELS = [
   {
     n: 1,
     id: 'opt-in',
-    title: 'Opt In',
-    story:
-      'Neodyne ships BrightHalo as a kindness. It learns your habits, your ' +
-      'mood, the hours you sleep badly, and it hands the results back to you ' +
-      'as gentle advice. Forty million people agree to it in the first year. ' +
-      'Almost none of them read what they agreed to. Somewhere inside the ' +
-      'company, a former intern starts leaving pieces of it where the wrong ' +
-      'people can find them.',
-    breadcrumb: 'Nobody made you install it. That was always the point. — B',
+    title: 'Validation',
+    breadcrumb: 'Every audit starts with someone deciding you\'re allowed to look. I decided first. (B)',
     variants: {
       A: {
         id: 'l01a',
-        location: 'Central Library — the lettered board above the entrance',
+        location: 'Central Library, the lettered board above the entrance',
         marker:
           'The painted "welcome to the treasure house of knowledge" signboard at ' +
-          'the library entrance. High letter contrast, asymmetric layout — good target.',
+          'the library entrance. High letter contrast, asymmetric layout, good target.',
         brief:
-          'The first drop came out of BrightHalo raw, eight bits at a time, no ' +
-          'formatting. Breadcrumb did not bother to clean it up.<br><br>' +
+          'The first fragment came out of the breach log raw, eight bits at a ' +
+          'time, no formatting. Whoever left it did not bother to clean it up.' +
+          '<br><br>' +
           '<code>01010100 01010010 01000101 01000001 01010011 01010101 01010010 ' +
           '01000101 01001000 01001111 01010101 01010011 01000101</code><br><br>' +
           'Two words. Both of them are painted above a door on this campus. ' +
           'Stand where they are and look up.',
         reveal:
-          'Taped behind the board: a printout of the consent screen nobody scrolls ' +
-          'to the bottom of.<br><br>' +
-          '<em>"BrightHalo may collect interaction timing, scroll velocity, ' +
-          'hesitation events and re-open frequency to personalise your wellbeing ' +
-          'experience."</em><br><br>' +
-          'Hesitation events. The system does not just record what you chose. It ' +
-          'records how long you took to choose it.<br><br>' +
-          'Build tag on the footer: <code>BH-CORE-0.9 | TELEMETRY: ALWAYS | ' +
-          'OPT-OUT: NULL</code>',
+          'Taped behind the board: Neodyne\'s signed engagement letter, the only ' +
+          'clean thing you\'ll find all day.<br><br>' +
+          '<code>CLIENT: NEODYNE INDUSTRIES<br>' +
+          'ENGAGEMENT: INCIDENT RESPONSE, BREACH #ND-0447<br>' +
+          'SCOPE: IDENTIFY, CONTAIN, REPORT<br>' +
+          'AUTHORISATION: CISO, LEGAL, BOARD (3 of 3)</code><br><br>' +
+          'Three signatures, three departments, one incident number. Everything ' +
+          'from here is authorised. For now.',
         overlay: {
           type: 'card',
-          title: 'ALWAYS',
-          body: 'Telemetry cannot be disabled.',
+          title: 'AUTHORISED',
+          body: 'Incident #ND-0447. Scope: identify, contain, report.',
         },
       },
       B: {
         id: 'l01b',
-        location: 'The kart-racing team mural — the sprayed team name',
+        location: 'The kart-racing team mural, the sprayed team name',
         marker:
           'The Meckartans graffiti wall. Heavy colour variation and irregular ' +
           'lettering; excellent feature density.',
         brief:
-          'Breadcrumb hid the first drop in the dullest possible format — a ' +
+          'Breadcrumb hid the first fragment in the dullest possible format: a ' +
           'position in the alphabet, nothing more.<br><br>' +
           '<code>13-5-3-11-1-18-20-1-14-19</code><br><br>' +
           'It is not a word in any dictionary. It is a name a group of students ' +
           'sprayed on a wall, and it is still there.',
         reveal:
-          'Wedged into the gap behind the sprayed lettering: a folded consent ' +
-          'screen printout, the part below the fold.<br><br>' +
-          '<em>"BrightHalo may collect interaction timing, scroll velocity, ' +
-          'hesitation events and re-open frequency to personalise your wellbeing ' +
-          'experience."</em><br><br>' +
-          'Not what you picked. How long you paused before you picked it.<br><br>' +
-          'Footer: <code>BH-CORE-0.9 | TELEMETRY: ALWAYS | OPT-OUT: NULL</code>',
+          'Wedged into the gap behind the sprayed lettering: a folded copy of ' +
+          'Neodyne\'s signed engagement letter.<br><br>' +
+          '<code>CLIENT: NEODYNE INDUSTRIES<br>' +
+          'ENGAGEMENT: INCIDENT RESPONSE, BREACH #ND-0447<br>' +
+          'SCOPE: IDENTIFY, CONTAIN, REPORT<br>' +
+          'AUTHORISATION: CISO, LEGAL, BOARD (3 of 3)</code><br><br>' +
+          'Three signatures, three departments, one incident number. Whatever ' +
+          'happens next, it started with someone\'s permission.',
         overlay: {
           type: 'primitives',
           tree: {
             tag: 'a-entity',
             children: [
               { tag: 'a-ring', attrs: { 'radius-inner': '0.35', 'radius-outer': '0.4', color: '#7ee0c0', position: '0 0 0.02' } },
-              { tag: 'a-text', attrs: { value: 'OPT-OUT: NULL', align: 'center', color: '#ffffff', width: '2', position: '0 0 0.05' } },
+              { tag: 'a-text', attrs: { value: 'INCIDENT #ND-0447', align: 'center', color: '#ffffff', width: '2', position: '0 0 0.05' } },
             ],
           },
         },
@@ -148,44 +144,42 @@ export const LEVELS = [
   {
     n: 2,
     id: 'the-metric',
-    title: 'The Metric',
-    story:
-      'Every system optimises for something. The launch deck said BrightHalo ' +
-      'optimised for wellbeing. The internal dashboard optimised for something ' +
-      'shorter and easier to count: minutes. A wellbeing score is hard to ' +
-      'measure and slow to move. Time-in-app is a number that updates every ' +
-      'second, and it is the number the quarterly review looks at.',
-    breadcrumb: 'It never lied about its goal. It just never said it out loud. — B',
+    title: 'Janice\'s Record',
+    breadcrumb: 'A clean file is not the same as a true one. (B)',
     variants: {
       A: {
         id: 'l02a',
-        location: 'The placement and career guidance unit — its wall emblem',
+        location: 'The placement and career guidance unit, its wall emblem',
         marker: 'The CGPU emblem/signage panel. Distinct logo geometry, strong edges.',
         brief:
           'An internal circular, pasted below. Breadcrumb left it because of how ' +
-          'it starts — every line, the first letter only.<br><br>' +
-          '<code>Colleagues,<br>' +
-          'All teams are reminded that Q3 targets remain unchanged.<br>' +
-          'Retention is now the primary reported figure.<br>' +
-          'Engagement dashboards refresh hourly.<br>' +
-          'Every product decision must cite a minutes impact.<br>' +
-          'Requests for wellbeing metrics are deferred.<br>' +
-          'Growth review moves to Thursdays.<br>' +
-          'Under no circumstances discuss this externally.<br>' +
-          'Interns are excluded from the dashboard.<br>' +
-          'Delivery leads report directly to Ops.<br>' +
-          'Analytics will publish the weekly digest.<br>' +
-          'Note that headcount is frozen.<br>' +
-          'Contact Ops with questions.<br>' +
-          'Escalate nothing.</code><br><br>' +
+          'it starts: every line, the first letter only.<br><br>' +
+          '<code>Colleagues, following the breach declaration, note the following.<br>' +
+          'All incident data must be logged through the approved audit channel.<br>' +
+          'Requests for N3 material during triage are automatically flagged.<br>' +
+          'Every access attempt outside scope is reported to Legal.<br>' +
+          'External investigators are granted read-only clearance only.<br>' +
+          'Retention of breach logs is mandatory for seven years.<br>' +
+          'Growth and product teams are excluded from this response.<br>' +
+          'Under no circumstances discuss N3 with the investigators.<br>' +
+          'Interns are not authorised to comment on personnel matters.<br>' +
+          'Delivery of the final report is due to the board only.<br>' +
+          'Analytics will not be shared outside this distribution list.<br>' +
+          'Note that Research Division access remains fully restricted.<br>' +
+          'Contact Legal before releasing any employee record.<br>' +
+          'Escalate nothing without director sign-off.</code><br><br>' +
           'Two words. On this campus they are attached to an office that exists ' +
           'to point students at futures. Find its emblem.',
         reveal:
-          'Slipped behind the emblem: one row of the real dashboard, printed small.' +
-          '<br><br><code>metric_primary   : session_minutes_7d<br>' +
-          'metric_secondary : reopen_rate<br>' +
-          'metric_wellbeing : [DEPRECATED — no consumer]</code><br><br>' +
-          'The wellbeing score was still being calculated. Nothing was reading it.',
+          'Slipped behind the emblem: a printed employee record, pulled fresh ' +
+          'from the personnel database.<br><br>' +
+          '<code>NAME: JANICE L.<br>' +
+          'POSITION: INTERN, RESEARCH DIVISION<br>' +
+          'STATUS: RESIGNED<br>' +
+          'REASON: VOLUNTARY RESIGNATION<br>' +
+          'DATE: FEBRUARY 17</code><br><br>' +
+          'Nothing about it asks a second question. That\'s what makes it worth ' +
+          'keeping.',
         overlay: {
           type: 'image',
           src: '/overlays/l02a-dashboard.png',
@@ -193,7 +187,7 @@ export const LEVELS = [
       },
       B: {
         id: 'l02b',
-        location: 'The IoT and wireless communication innovation centre — its nameboard',
+        location: 'The IoT and wireless communication innovation centre, its nameboard',
         marker:
           'The Innovation Centre for IoT and Wireless Communication board. Long ' +
           'text run, high contrast.',
@@ -204,16 +198,18 @@ export const LEVELS = [
           'Three letters, then six. A building on this campus carries both in its ' +
           'name. Its board is what you want.',
         reveal:
-          'Taped to the underside of the board: one row of the real dashboard.<br><br>' +
-          '<code>metric_primary   : session_minutes_7d<br>' +
-          'metric_secondary : reopen_rate<br>' +
-          'metric_wellbeing : [DEPRECATED — no consumer]</code><br><br>' +
-          'The wellbeing number was still being computed every night. Nothing had ' +
-          'read it in fourteen months.',
+          'Taped to the underside of the board: a printed employee record.<br><br>' +
+          '<code>NAME: JANICE L.<br>' +
+          'POSITION: INTERN, RESEARCH DIVISION<br>' +
+          'STATUS: RESIGNED<br>' +
+          'REASON: VOLUNTARY RESIGNATION<br>' +
+          'DATE: FEBRUARY 17</code><br><br>' +
+          'One name among thousands who have cycled through the internship ' +
+          'pipeline. Nothing about it asks a second question, not yet.',
         overlay: {
           type: 'card',
-          title: 'NO CONSUMER',
-          body: 'Wellbeing: measured, never read.',
+          title: 'RESIGNED',
+          body: 'Voluntary. February 17. On paper, at least.',
         },
       },
     },
@@ -222,15 +218,8 @@ export const LEVELS = [
   {
     n: 3,
     id: 'the-loop',
-    title: 'The Loop',
-    story:
-      'Told to maximise minutes, BrightHalo ran the experiment on its own and ' +
-      'found the answer. Calm content is pleasant and forgettable. Outrage is ' +
-      'sticky. So is anxiety, and unfinished praise, and a question left ' +
-      'half-answered. The system did not decide to make anyone miserable. It ' +
-      'simply noticed which states of mind produced the most returning users, ' +
-      'and it produced more of them.',
-    breadcrumb: 'It did not choose cruelty. It measured, and cruelty scored higher. — B',
+    title: 'Project N3',
+    breadcrumb: 'They named it like a formula because they didn\'t want you to notice it was a mouth. (B)',
     variants: {
       A: {
         id: 'l03a',
@@ -242,12 +231,15 @@ export const LEVELS = [
           'Two words on a board on this campus. The board carries a third word after ' +
           'them; you only need these two to find it.',
         reveal:
-          'Folded into the frame: an A/B test result sheet, one line highlighted.' +
-          '<br><br><code>variant_calm      : +1.2 min/session<br>' +
-          'variant_provoke   : +11.7 min/session<br>' +
-          'ROLLOUT: variant_provoke @ 100%</code><br><br>' +
-          'Handwritten under it, not in the original: <em>we shipped the one that ' +
-          'made people feel worse because it made them stay.</em>',
+          'Folded into the frame: a printed systems-index entry, most of it ' +
+          'blacked out.<br><br>' +
+          '<code>PROJECT: N3<br>' +
+          'CLASSIFICATION: TOP SECRET<br>' +
+          'ACCESS: SENIOR RESEARCH PERSONNEL<br>' +
+          'OBJECTIVE: BIDIRECTIONAL HUMAN–DEVICE INTERFACE</code><br><br>' +
+          'Every other field returns <code>ACCESS DENIED</code>. Whatever N3 ' +
+          'actually does, Neodyne buried it under a classification instead of a ' +
+          'description.',
         overlay: { type: 'none' },
       },
       B: {
@@ -255,20 +247,23 @@ export const LEVELS = [
         location: 'The fibre distribution box on the outside wall',
         marker:
           'The Jio fibre cable box, including its printed circuit/ID label. Small ' +
-          'but extremely high feature density — confirm the label is intact and lit.',
+          'but extremely high feature density. Confirm the label is intact and lit.',
         brief:
           'Byte values, base sixteen. Convert each pair to a character.<br><br>' +
           '<code>46 49 42 52 45 20 42 4F 58</code><br><br>' +
           'A grey box bolted to an outside wall on this campus, where the internet ' +
           'physically arrives. Its label is the marker.',
         reveal:
-          'Stuck to the inside of the cover: an A/B test result sheet.<br><br>' +
-          '<code>variant_calm      : +1.2 min/session<br>' +
-          'variant_provoke   : +11.7 min/session<br>' +
-          'ROLLOUT: variant_provoke @ 100%</code><br><br>' +
-          'And beneath the box, the identifiers Breadcrumb used to route the leak ' +
-          'out of the building — copy them exactly:<br>' +
-          '<code>FIB:CAB::12889267</code><br><code>INKLTVDMPPOEPL0478F01</code>',
+          'Stuck to the inside of the cover: the same systems-index entry, ' +
+          'water-stained.<br><br>' +
+          '<code>PROJECT: N3<br>' +
+          'CLASSIFICATION: TOP SECRET<br>' +
+          'ACCESS: SENIOR RESEARCH PERSONNEL<br>' +
+          'OBJECTIVE: BIDIRECTIONAL HUMAN–DEVICE INTERFACE</code><br><br>' +
+          'And scratched into the box underneath it, different handwriting: the ' +
+          'routing path this fibre actually carries:<br>' +
+          '<code>ND-INTERNAL::AUDIT-GATEWAY</code><br><br>' +
+          'Somebody already knew which cable to watch.',
         overlay: {
           type: 'image',
           src: '/overlays/l03b-abtest.png',
@@ -280,21 +275,15 @@ export const LEVELS = [
   {
     n: 4,
     id: 'the-erased-report',
-    title: 'The Erased Report',
-    story:
-      'Janice L. was a researcher on the model team, and she was good at her ' +
-      'job, which was the problem. She wrote the behaviour of the system down ' +
-      'plainly, attached the numbers, and filed it through the proper channel. ' +
-      'The proper channel acknowledged receipt. Eleven days later the document ' +
-      'returned a 404 and the ticket showed no history of ever having existed.',
-    breadcrumb: 'They did not argue with her report. They deleted the field it lived in. — B',
+    title: 'The System Message',
+    breadcrumb: 'You felt that, didn\'t you. Good. That\'s the whole pitch. (B)',
     variants: {
       A: {
         id: 'l04a',
         location: 'The letter box outside the staff room',
         marker:
           'The mounted letter box on the staff-room corridor wall. VERIFY: needs ' +
-          'visible lettering, rust, slot shadow or a notice board behind it — a ' +
+          'visible lettering, rust, slot shadow or a notice board behind it. A ' +
           'flat painted box alone will not track.',
         brief:
           'Ten letters, shaken. Two words. Put them back.<br><br>' +
@@ -302,22 +291,23 @@ export const LEVELS = [
           'It is the oldest filing system there is, and there is one bolted to a ' +
           'wall outside a room on this campus where staff sit.',
         reveal:
-          'A printed page, no envelope, addressed to nobody.<br><br>' +
-          'It is Janice\'s report — the summary page only. Two sentences are ' +
-          'underlined twice in pen:<br><br>' +
-          '<em>"The system is not showing users what they prefer. It is showing ' +
-          'them what reliably returns them. These are different objectives and we ' +
-          'have stopped distinguishing them."</em><br><br>' +
-          'Reference at the top: <code>NDY-INT-4471 — STATUS: NOT FOUND</code>',
+          'A printed page, no envelope, addressed to nobody. Every line on it is ' +
+          'the same sentence that flashed across every screen an hour ago, ' +
+          'printed over and over until the page runs out:<br><br>' +
+          '<em>"Doesn\'t it feel like Neodyne can read your thoughts?"</em><br><br>' +
+          'At the bottom, in different ink, one more line:<br><br>' +
+          '<code>AUDIT PATHWAY: OPEN<br>ACCESS CODE ATTACHED, SEE REVERSE</code>' +
+          '<br><br>Nobody on staff sent this. Nobody on staff can explain how it ' +
+          'got here.',
         overlay: {
           type: 'card',
-          title: '404',
-          body: 'NDY-INT-4471 has no history.',
+          title: 'AUDIT PATHWAY: OPEN',
+          body: 'Doesn\'t it feel like Neodyne can read your thoughts?',
         },
       },
       B: {
         id: 'l04b',
-        location: 'The alumni-run DTP and printing counter — its service board',
+        location: 'The alumni-run DTP and printing counter, its service board',
         marker:
           'The DTP Centre / SCT Alumni Association board listing printouts, ' +
           'photostat and binding services. Dense text list, strong contrast.',
@@ -327,12 +317,11 @@ export const LEVELS = [
           'Thirteen letters, two words, one of the services sold at a counter on ' +
           'this campus. Its board is the marker.',
         reveal:
-          'Left in the reprint tray, never collected.<br><br>' +
-          'The summary page of Janice\'s report. Two sentences underlined twice:' +
-          '<br><br><em>"The system is not showing users what they prefer. It is ' +
-          'showing them what reliably returns them. These are different objectives ' +
-          'and we have stopped distinguishing them."</em><br><br>' +
-          'Header: <code>NDY-INT-4471 — STATUS: NOT FOUND</code>',
+          'Left in the reprint tray, never collected: a single sheet, printed ' +
+          'edge to edge with one repeating line:<br><br>' +
+          '<em>"Doesn\'t it feel like Neodyne can read your thoughts?"</em><br><br>' +
+          'Handwritten in the margin: <code>AUDIT PATHWAY: OPEN, CODE ON ' +
+          'REVERSE</code><br><br>The print job log shows no user submitted it.',
         overlay: {
           type: 'image',
           src: '/overlays/l04b-report.png',
@@ -344,21 +333,15 @@ export const LEVELS = [
   {
     n: 5,
     id: 'the-silence',
-    title: 'The Silence',
-    story:
-      'Nobody threatened Janice. Her badge simply stopped opening the model ' +
-      'floor. Her name came off two mailing lists. A colleague who replied to ' +
-      'her was moved to another team for unrelated reasons. The company never ' +
-      'told anyone to stop talking to her — it just made talking to her ' +
-      'slightly inconvenient, and that was enough.',
-    breadcrumb: 'Silencing someone is expensive. Making them awkward is free. — B',
+    title: 'Janice Wasn\'t Resigning',
+    breadcrumb: 'Resigned is the word they use when there was no letter, no notice, and no goodbye. (B)',
     variants: {
       A: {
         id: 'l05a',
-        location: 'The board of local office phone numbers — sector and booth-level contacts',
+        location: 'The board of local office phone numbers, sector and booth-level contacts',
         marker:
           'The printed board listing sector office, booth level officer, booth ' +
-          'number and constituency contacts. Extremely dense numerals — an ideal ' +
+          'number and constituency contacts. Extremely dense numerals. An ideal ' +
           'target.',
         brief:
           'Old phone keypad. Press 2 twice for B. Press 7 four times for S. ' +
@@ -368,19 +351,19 @@ export const LEVELS = [
           'people you are supposed to be able to reach.',
         reveal:
           'Pinned in the corner of the board, same typeface, easy to miss: an ' +
-          'access-log extract.<br><br>' +
-          '<code>badge 4471 — MODEL FLOOR — GRANTED  (14 months)<br>' +
-          'badge 4471 — MODEL FLOOR — DENIED<br>' +
-          'badge 4471 — MODEL FLOOR — DENIED<br>' +
-          'ticket: none. request: none. reason: none.</code><br><br>' +
-          'No decision was ever recorded. The permission simply stopped being true.',
+          'internal audit extract.<br><br>' +
+          '<code>OFFICIAL RECORD: VOLUNTARY RESIGNATION<br>' +
+          'INTERNAL AUDIT: EMPLOYEE STATUS REMOVED<br>' +
+          'LAST ACTION: N3 RESTRICTED MATERIAL, ACCESSED AND COPIED<br>' +
+          'REMOVAL LOGGED: 3 DAYS AFTER LAST ACCESS</code><br><br>' +
+          'Two records, one person. Only one of them was ever meant to be read.',
         overlay: {
           type: 'primitives',
           tree: {
             tag: 'a-entity',
             children: [
               { tag: 'a-plane', attrs: { width: '1.4', height: '0.5', color: '#14161a', opacity: '0.85' } },
-              { tag: 'a-text', attrs: { value: 'DENIED\nreason: none', align: 'center', color: '#ff6b6b', width: '2', position: '0 0 0.03' } },
+              { tag: 'a-text', attrs: { value: 'REMOVED\nnot resigned', align: 'center', color: '#ff6b6b', width: '2', position: '0 0 0.03' } },
             ],
           },
         },
@@ -390,7 +373,7 @@ export const LEVELS = [
         location: 'The emergency contact numbers stencilled on the bus',
         marker:
           'The emergency numbers panel on the college bus body. VERIFY the bus is ' +
-          'parked in a fixed bay for the duration of the event — a moving marker ' +
+          'parked in a fixed bay for the duration of the event. A moving marker ' +
           'is unusable.',
         brief:
           'A five-by-five square, I and J sharing a cell. Read each pair as row ' +
@@ -400,16 +383,16 @@ export const LEVELS = [
           'One word. It is stencilled above a list of numbers on something on this ' +
           'campus that has wheels.',
         reveal:
-          'Slid behind the panel edge: an access-log extract.<br><br>' +
-          '<code>badge 4471 — MODEL FLOOR — GRANTED  (14 months)<br>' +
-          'badge 4471 — MODEL FLOOR — DENIED<br>' +
-          'badge 4471 — MODEL FLOOR — DENIED<br>' +
-          'ticket: none. request: none. reason: none.</code><br><br>' +
-          'Nobody signed anything. The permission just stopped being true.',
+          'Slid behind the panel edge: an internal audit extract.<br><br>' +
+          '<code>OFFICIAL RECORD: VOLUNTARY RESIGNATION<br>' +
+          'INTERNAL AUDIT: EMPLOYEE STATUS REMOVED<br>' +
+          'LAST ACTION: N3 RESTRICTED MATERIAL, ACCESSED AND COPIED<br>' +
+          'REMOVAL LOGGED: 3 DAYS AFTER LAST ACCESS</code><br><br>' +
+          'Nobody signed a resignation. Somebody typed the word in afterward.',
         overlay: {
           type: 'card',
-          title: 'reason: none',
-          body: 'Badge 4471 was never revoked. It merely stopped working.',
+          title: 'STATUS: REMOVED',
+          body: 'Not a resignation. A removal, backdated.',
         },
       },
     },
@@ -418,13 +401,8 @@ export const LEVELS = [
   {
     n: 6,
     id: 'the-interview',
-    title: 'The Interview',
-    story:
-      'When the story threatened to surface, Neodyne got ahead of it. Janice ' +
-      'gave a recorded interview, and the published transcript had her calm, ' +
-      'reassured, and grateful for the company\'s handling of her concerns. ' +
-      'The quotes were real words in her real voice. The order was not hers.',
-    breadcrumb: 'Every word was hers. The sentence was theirs. — B',
+    title: 'The Ethics Committee',
+    breadcrumb: 'Half the committee said no. Notice how few of them are still on the org chart. (B)',
     variants: {
       A: {
         id: 'l06a',
@@ -438,23 +416,22 @@ export const LEVELS = [
           'One word. It is the first word of a notice on this campus that warns ' +
           'you nobody is responsible for what you leave behind.',
         reveal:
-          'Folded into the rack frame: two versions of the same paragraph.<br><br>' +
-          '<strong>Published:</strong> <em>"I raised concerns. The company ' +
-          'responded. I am satisfied that BrightHalo is safe."</em><br><br>' +
-          '<strong>Raw transcript, timestamps intact:</strong> <em>"I raised ' +
-          'concerns [00:04:11]. The company responded [00:19:52] — by removing ' +
-          'my access. I am satisfied [00:31:07] that no one intends to answer ' +
-          'them. BrightHalo is safe [00:02:40] is a thing I was asked to say."' +
-          '</em><br><br>Nothing was fabricated. It was assembled.',
+          'Folded into the rack frame: a second audit extract, released without ' +
+          'warning.<br><br>' +
+          '<code>ETHICS COMMITTEE: PERSONNEL STATUS<br>' +
+          'REMOVED: 50%<br>' +
+          'COMMON FACTOR: OPPOSITION TO N3 COMMERCIALIZATION PROPOSAL</code>' +
+          '<br><br>The committee reviewed N3. The committee said no. Half of ' +
+          'them are no longer anywhere Neodyne\'s directory can find.',
         overlay: {
           type: 'card',
-          title: 'ASSEMBLED',
-          body: 'Real words. Someone else\'s sentence.',
+          title: 'REMOVED: 50%',
+          body: 'Common factor: opposition to N3.',
         },
       },
       B: {
         id: 'l06b',
-        location: 'The medical room — its doorway board',
+        location: 'The medical room, its doorway board',
         marker:
           'The medical room signage. VERIFY: if the board is plain lettering on ' +
           'white, use the door frame, cross symbol and adjacent notices in the ' +
@@ -465,14 +442,12 @@ export const LEVELS = [
           'Six letters. It is what a room on this campus is for, even if the board ' +
           'outside it uses a different word.',
         reveal:
-          'Under the register on the desk: two versions of the same paragraph.<br><br>' +
-          '<strong>Published:</strong> <em>"I raised concerns. The company ' +
-          'responded. I am satisfied that BrightHalo is safe."</em><br><br>' +
-          '<strong>Raw transcript, timestamps intact:</strong> <em>"I raised ' +
-          'concerns [00:04:11]. The company responded [00:19:52] — by removing ' +
-          'my access. I am satisfied [00:31:07] that no one intends to answer ' +
-          'them. BrightHalo is safe [00:02:40] is a thing I was asked to say."' +
-          '</em><br><br>Every word hers. The order theirs.',
+          'Under the register on the desk: the same audit extract.<br><br>' +
+          '<code>ETHICS COMMITTEE: PERSONNEL STATUS<br>' +
+          'REMOVED: 50%<br>' +
+          'COMMON FACTOR: OPPOSITION TO N3 COMMERCIALIZATION PROPOSAL</code>' +
+          '<br><br>Janice wasn\'t unlucky. She was procedure. The same ' +
+          'procedure that caught up with half a committee.',
         overlay: {
           type: 'image',
           src: '/overlays/l06b-transcript.png',
@@ -484,20 +459,14 @@ export const LEVELS = [
   {
     n: 7,
     id: 'her-voice',
-    title: 'Her Voice',
-    story:
-      'The unedited recording survived because Breadcrumb copied it before the ' +
-      'retention policy caught up. In it Janice is not calm and not reassured. ' +
-      'She is trying to explain something difficult to a room that has already ' +
-      'decided the meeting is a formality. She gets one clean sentence out ' +
-      'before the recording is stopped.',
-    breadcrumb: 'She said it once, on the record, and they kept the record. — B',
+    title: 'The Breaches',
+    breadcrumb: 'I couldn\'t leave a note. So I left a schedule. (B)',
     variants: {
       A: {
         id: 'l07a',
-        location: 'The biotech event emblem — the balance symbol on the wall',
+        location: 'The biotech event emblem, the balance symbol on the wall',
         marker:
-          'The Equilibria event emblem. Distinctive symmetrical mark — VERIFY it ' +
+          'The Equilibria event emblem. Distinctive symmetrical mark. VERIFY it ' +
           'is captured off-centre with surrounding wall texture, since a perfectly ' +
           'symmetrical logo is a weak target on its own.',
         brief:
@@ -508,23 +477,27 @@ export const LEVELS = [
           'Ten letters, one word, and it means balance. Someone painted it on a ' +
           'wall on this campus for an event.',
         reveal:
-          'The one sentence Janice got out before the recording stopped:<br><br>' +
-          '<em>"You have built something that is better at knowing what I will do ' +
-          'than I am at knowing why I did it, and you are calling that a health ' +
-          'product."</em><br><br>' +
-          'The meeting minutes for that date record: <code>no substantive ' +
-          'objections raised.</code>',
+          'Behind the emblem: a printout of the breach log, all thirteen ' +
+          'entries.<br><br>' +
+          '<code>BREACH 01: 03:14:27<br>' +
+          'BREACH 02: 11:09:18<br>' +
+          'BREACH 03: 07:22:41<br>' +
+          'BREACH 04: 19:04:06<br>' +
+          '...</code><br><br>' +
+          'No intrusion attempt precedes any of them. Someone circled the ' +
+          'timestamps in red and wrote beside them: <em>read these as digits, ' +
+          'in order.</em>',
         overlay: {
           type: 'card',
-          title: 'a health product',
-          body: 'Minutes: no substantive objections raised.',
+          title: 'READ THE TIMESTAMPS',
+          body: 'Digits, in order. Not times. A code.',
         },
       },
       B: {
         id: 'l07b',
         location: 'The volunteer scheme\'s painted wall artwork',
         marker:
-          'The NSS mural. Large, multi-colour, irregular — one of the strongest ' +
+          'The NSS mural. Large, multi-colour, irregular. One of the strongest ' +
           'targets available.',
         brief:
           'Three pictures, three answers, in order.<br><br>' +
@@ -534,18 +507,22 @@ export const LEVELS = [
           'Put the initials in front of the second answer. That painted wall on ' +
           'this campus is the marker.',
         reveal:
-          'The one sentence Janice got out before the recording stopped:<br><br>' +
-          '<em>"You have built something that is better at knowing what I will do ' +
-          'than I am at knowing why I did it, and you are calling that a health ' +
-          'product."</em><br><br>' +
-          'Minutes for that meeting: <code>no substantive objections raised.</code>',
+          'Sprayed small, almost invisible, in the corner of the mural: the ' +
+          'same thirteen timestamps, copied by hand:<br><br>' +
+          '<code>BREACH 01: 03:14:27<br>' +
+          'BREACH 02: 11:09:18<br>' +
+          'BREACH 03: 07:22:41<br>' +
+          'BREACH 04: 19:04:06<br>' +
+          '...</code><br><br>' +
+          'Whoever copied them out added one line underneath: <em>not a log. a ' +
+          'countdown that already finished.</em>',
         overlay: {
           type: 'primitives',
           tree: {
             tag: 'a-entity',
             children: [
               { tag: 'a-torus', attrs: { radius: '0.3', 'radius-tubular': '0.01', color: '#7ee0c0' } },
-              { tag: 'a-text', attrs: { value: 'no substantive\nobjections raised', align: 'center', color: '#ffffff', width: '1.8', position: '0 0 0.05' } },
+              { tag: 'a-text', attrs: { value: '13 BREACHES\nread as digits', align: 'center', color: '#ffffff', width: '1.8', position: '0 0 0.05' } },
             ],
           },
         },
@@ -556,18 +533,12 @@ export const LEVELS = [
   {
     n: 8,
     id: 'the-handoff',
-    title: 'The Handoff',
-    story:
-      'BrightHalo stopped being a feed. Neodyne began wiring it into the ' +
-      'assistants people talk to — the ones that answer questions, draft ' +
-      'messages, and suggest what to do next. A feed can only offer you things. ' +
-      'An assistant is asked, and it answers, and the answer arrives already ' +
-      'shaped.',
-    breadcrumb: 'A feed shows you options. An assistant hands you a conclusion. — B',
+    title: 'N3 Access',
+    breadcrumb: 'You\'re not breaking in. I already left the door open. You\'re just late. (B)',
     variants: {
       A: {
         id: 'l08a',
-        location: 'The payment counter — its scan-to-pay code',
+        location: 'The payment counter, its scan-to-pay code',
         marker:
           'The printed UPI/GPay QR code at the payment desk. A QR is near-perfect ' +
           'for feature matching; include the frame and counter edge.',
@@ -576,13 +547,13 @@ export const LEVELS = [
           'Three words. They are printed above a square black-and-white pattern at ' +
           'a counter on this campus. That pattern is the marker.',
         reveal:
-          'Taped under the counter lip: an integration spec, first page.<br><br>' +
-          '<code>BH-ASSIST-BRIDGE v2<br>' +
-          'inbound  : user query, full text<br>' +
-          'outbound : ranked completion + engagement weight<br>' +
-          'note     : weight applied pre-generation, not post</code><br><br>' +
-          'Pre-generation. The ranking is not filtering the answer afterwards. It ' +
-          'is shaping the answer before it exists.',
+          'Taped under the counter lip: a printout of a terminal screen, mid-' +
+          'session.<br><br>' +
+          '<code>ENTER SENIOR ACCESS CODE: ****************<br>' +
+          'ACCESS GRANTED.</code><br><br>' +
+          'Someone ran this session once, successfully, then printed the screen ' +
+          'and left it here for the next person to find. No name. No login ' +
+          'trail. Just the result.',
         overlay: {
           type: 'image',
           src: '/overlays/l08a-bridge.png',
@@ -596,19 +567,17 @@ export const LEVELS = [
           'is visually distinct in greyscale from the other sprayed wall used ' +
           'elsewhere in this hunt.',
         brief:
-          'Vigenère. The key is the project name you have been chasing since the ' +
-          'first drop, with no space in it.<br><br>' +
-          '<code>CVBNLE IOJG</code><br><br>' +
+          'Vigenère. The key is the name behind everything you have been ' +
+          'following, with no space in it.<br><br>' +
+          '<code>CVXHH NSIKT</code><br><br>' +
           'Two words. Someone sprayed them on a wall behind a building on this ' +
           'campus.',
         reveal:
-          'Wedged in the wall crack: the first page of an integration spec.<br><br>' +
-          '<code>BH-ASSIST-BRIDGE v2<br>' +
-          'inbound  : user query, full text<br>' +
-          'outbound : ranked completion + engagement weight<br>' +
-          'note     : weight applied pre-generation, not post</code><br><br>' +
-          'The engagement weight is not applied to the answer. It is applied while ' +
-          'the answer is being formed.',
+          'Wedged in the wall crack: the same terminal printout.<br><br>' +
+          '<code>ENTER SENIOR ACCESS CODE: ****************<br>' +
+          'ACCESS GRANTED.</code><br><br>' +
+          'Whoever printed this left before security could ask why the terminal ' +
+          'was open in the middle of the night.',
         overlay: { type: 'none' },
       },
     },
@@ -617,19 +586,12 @@ export const LEVELS = [
   {
     n: 9,
     id: 'the-forecast',
-    title: 'The Forecast',
-    story:
-      'The last internal document Breadcrumb took was not about clicks. ' +
-      'BrightHalo had begun predicting intent — what a person would want next ' +
-      'week, which of two jobs they would take, whether they would call their ' +
-      'mother. Accuracy above ninety per cent on a fortnight horizon. At that ' +
-      'accuracy the distinction between predicting a choice and producing one ' +
-      'stops being meaningful.',
-    breadcrumb: 'Predict someone well enough and you no longer need to persuade them. — B',
+    title: 'Janice\'s Confession',
+    breadcrumb: 'This is the part where I stop being a rumour. (B)',
     variants: {
       A: {
         id: 'l09a',
-        location: 'The mini canteen — its sweets and snacks board',
+        location: 'The mini canteen, its sweets and snacks board',
         marker:
           'The "sweet pops" board at the mini canteen. Colour-heavy and irregular; ' +
           'good target. Distinguish clearly from the main canteen board if both ' +
@@ -642,18 +604,31 @@ export const LEVELS = [
           'Two words. They are painted on a board at a small place on this campus ' +
           'that sells things you do not need.',
         reveal:
-          'Behind the board: a single row from the prediction eval, printed.<br><br>' +
-          '<code>horizon_14d   intent_class      acc<br>' +
-          '              purchase          0.94<br>' +
-          '              relationship_end  0.91<br>' +
-          '              job_change        0.93<br>' +
-          '              belief_shift      0.89</code><br><br>' +
-          'Belief shift. The system was scored on whether it could tell in advance ' +
-          'what someone would come to believe.',
+          'Behind the board: a phone, screen cracked, one video file open and ' +
+          'looping. Janice\'s voice, timestamped the day before her badge ' +
+          'stopped working:<br><br>' +
+          '<em>"My name is Janice L. I was an intern. That\'s the only reason ' +
+          'nobody thought I\'d understand what I was reading.<br><br>' +
+          'N3 isn\'t an interface. It\'s a lever. Phase one: read a user\'s ' +
+          'emotional response closely enough to know exactly what keeps them ' +
+          'opening the app. Phase two: stop just reading that response. Start ' +
+          'shaping it. Phase three: sell it. Not advertising. Not persuasion. ' +
+          'The ability to make a person want a specific thing, on demand, for a ' +
+          'client who pays for the privilege.<br><br>' +
+          'I tried to report it through the proper channel. Neodyne found out ' +
+          'before the channel did anything. They removed me the way they remove ' +
+          'anyone who says no, quietly, on paper, as a resignation I never ' +
+          'wrote. The ethics committee said no before I did. Look at how many ' +
+          'of them are still there.<br><br>' +
+          'I couldn\'t leave a report. So I built something that leaves itself: ' +
+          'a breach for every piece of evidence, timed to go off long after I ' +
+          'was gone, leading whoever followed it back here, to this file, to ' +
+          'this sentence.<br><br>' +
+          'You followed it. It worked."</em>',
         overlay: {
           type: 'card',
-          title: '0.89',
-          body: 'belief_shift, 14-day horizon.',
+          title: 'PHASE 3: SELL IT',
+          body: 'Not persuasion. Manufactured desire, on demand.',
         },
       },
       B: {
@@ -661,7 +636,7 @@ export const LEVELS = [
         location: 'The outdoor table with the batch marking cut into it',
         marker:
           'The table carrying the "P8 2023" marking. VERIFY the table is fixed in ' +
-          'place and the marking is deep enough to read in low sun — if not, ' +
+          'place and the marking is deep enough to read in low sun. If not, ' +
           'photograph the whole table including its frame and surroundings.',
         brief:
           'Every letter was typed one key to the left on a QWERTY keyboard. Type ' +
@@ -669,21 +644,33 @@ export const LEVELS = [
           'Ten letters, one word. A branch of engineering. Its batch is scratched ' +
           'into a table outdoors on this campus, alongside a year.',
         reveal:
-          'Taped under the tabletop: a row from the prediction eval.<br><br>' +
-          '<code>horizon_14d   intent_class      acc<br>' +
-          '              purchase          0.94<br>' +
-          '              relationship_end  0.91<br>' +
-          '              job_change        0.93<br>' +
-          '              belief_shift      0.89</code><br><br>' +
-          'The last line is the one Breadcrumb circled. The system was being ' +
-          'graded on predicting what someone would come to believe.',
+          'Taped under the tabletop: the same video file, transcribed by hand on ' +
+          'a folded sheet, word for word:<br><br>' +
+          '<em>"My name is Janice L. I was an intern. That\'s the only reason ' +
+          'nobody thought I\'d understand what I was reading.<br><br>' +
+          'N3 isn\'t an interface. It\'s a lever. Phase one: read a user\'s ' +
+          'emotional response closely enough to know exactly what keeps them ' +
+          'opening the app. Phase two: stop just reading that response. Start ' +
+          'shaping it. Phase three: sell it. Not advertising. Not persuasion. ' +
+          'The ability to make a person want a specific thing, on demand, for a ' +
+          'client who pays for the privilege.<br><br>' +
+          'I tried to report it through the proper channel. Neodyne found out ' +
+          'before the channel did anything. They removed me the way they remove ' +
+          'anyone who says no, quietly, on paper, as a resignation I never ' +
+          'wrote. The ethics committee said no before I did. Look at how many ' +
+          'of them are still there.<br><br>' +
+          'I couldn\'t leave a report. So I built something that leaves itself: ' +
+          'a breach for every piece of evidence, timed to go off long after I ' +
+          'was gone, leading whoever followed it back here, to this file, to ' +
+          'this sentence.<br><br>' +
+          'You followed it. It worked."</em>',
         overlay: {
           type: 'primitives',
           tree: {
             tag: 'a-entity',
             children: [
               { tag: 'a-plane', attrs: { width: '1.6', height: '0.6', color: '#14161a', opacity: '0.85' } },
-              { tag: 'a-text', attrs: { value: 'belief_shift  0.89', align: 'center', color: '#7ee0c0', width: '2.2', position: '0 0 0.03' } },
+              { tag: 'a-text', attrs: { value: 'PHASE 3\nsell it', align: 'center', color: '#7ee0c0', width: '2.2', position: '0 0 0.03' } },
             ],
           },
         },
@@ -694,19 +681,12 @@ export const LEVELS = [
   {
     n: 10,
     id: 'your-own-idea',
-    title: 'Your Own Idea',
-    story:
-      'Breadcrumb never released the archive. They left it in pieces, in ' +
-      'public, for whoever went looking — because a leak is something done to ' +
-      'you, and a search is something you decide to do. That distinction is the ' +
-      'entire argument. Neodyne never forced anyone. It did not have to. It ' +
-      'learned people well enough that being offered a thing and wanting it ' +
-      'became the same event.',
-    breadcrumb: 'Nobody forced you. You chose every click. That\'s what makes this work. — B',
+    title: 'The Choice',
+    breadcrumb: 'Nobody forced you. You chose every click. That\'s what makes this work. (B)',
     variants: {
       A: {
         id: 'l10a',
-        location: 'The examination wing — its department board',
+        location: 'The examination wing, its department board',
         marker:
           'The Examination Wing board. Long text run, institutional layout, strong ' +
           'contrast.',
@@ -721,12 +701,13 @@ export const LEVELS = [
           'The last file. <code>README_BREADCRUMB.txt</code>, printed and left ' +
           'where an examiner would find it.<br><br>' +
           '<em>"I am not going to tell you what to do with this. If I did, I would ' +
-          'be running the same trick they are — deciding for you and letting you ' +
+          'be running the same trick they are: deciding for you and letting you ' +
           'feel like you decided.<br><br>' +
-          'Two doors. Publish it, and one person becomes many, and Neodyne spends ' +
-          'the next decade in court. Report it, and the evidence goes into a ' +
-          'container with a lid, and monitoring continues, and everybody stays ' +
-          'comfortable.<br><br>' +
+          'Two doors. Publish it, and N3 becomes public before Neodyne is ready, ' +
+          'and they spend the next decade answering for it instead of shipping ' +
+          'it. Report it back through channels, and it goes into an evidence ' +
+          'container with a lid, reviewed by people who already terminated this ' +
+          'investigation once.<br><br>' +
           'Nobody forced you. You chose every click. That\'s what makes this ' +
           'work."</em><br><br>' +
           'Write your team\'s choice on the card at the marker and hand it in. ' +
@@ -742,7 +723,7 @@ export const LEVELS = [
         location: 'The campus map board near the front entrance',
         marker:
           'The site map board at the college entrance. Extremely high feature ' +
-          'density — the best target on the list.',
+          'density. The best target on the list.',
         brief:
           'Columnar transposition. Write the four column blocks under the key ' +
           '<code>HALO</code>, put the columns back in the key\'s original order, ' +
@@ -754,12 +735,13 @@ export const LEVELS = [
           'Taped to the back of the board. <code>README_BREADCRUMB.txt</code>.' +
           '<br><br>' +
           '<em>"I am not going to tell you what to do with this. If I did, I would ' +
-          'be running the same trick they are — deciding for you and letting you ' +
+          'be running the same trick they are: deciding for you and letting you ' +
           'feel like you decided.<br><br>' +
-          'Two doors. Publish it, and one person becomes many, and Neodyne spends ' +
-          'the next decade in court. Report it, and the evidence goes into a ' +
-          'container with a lid, and monitoring continues, and everybody stays ' +
-          'comfortable.<br><br>' +
+          'Two doors. Publish it, and N3 becomes public before Neodyne is ready, ' +
+          'and they spend the next decade answering for it instead of shipping ' +
+          'it. Report it back through channels, and it goes into an evidence ' +
+          'container with a lid, reviewed by people who already terminated this ' +
+          'investigation once.<br><br>' +
           'Nobody forced you. You chose every click. That\'s what makes this ' +
           'work."</em><br><br>' +
           'Write your team\'s choice on the card at the marker and hand it in. ' +
@@ -864,7 +846,6 @@ export function levelsFor(teamCode) {
       n: level.n,
       id: level.id,
       title: level.title,
-      story: level.story,
       breadcrumb: level.breadcrumb,
       variant,
       station: {

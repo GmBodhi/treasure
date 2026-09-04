@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { ArrowRightIcon } from './icons.jsx';
+import Prose from './Prose.jsx';
 
 const GLITCH_MS = 260;
 const BLACK_MS = 340;
 
 /**
  * The cinematic beat that takes over once a station is found: the live feed
- * glitches out, cuts to black, then the story fragment fades in over it.
+ * glitches out, cuts to black, then one card fades in over it with what was
+ * recovered, breadcrumb quote and reveal together, nothing else.
  *
  * Mounted only while `ScanPage` is showing a find — deliberately independent
  * of AR tracking state, so losing the marker mid-read (phone lowered, hand
@@ -51,47 +53,70 @@ export default function FoundReveal({ marker, onContinue, onClose }) {
         </div>
       )}
 
+      {/* One scrollable column, not a centered flex box — the reveal card can
+          run much longer than a level blurb ever did, and content that
+          overflows a centered container can end up unreachable by scroll. */}
       <div
         className={
-          'relative z-10 flex h-full flex-col items-center justify-center gap-5 px-6 text-center ' +
+          'relative z-10 h-full overflow-y-auto ' +
           'transition-opacity duration-700 ease-out-back ' +
-          (phase === 'reveal' ? 'opacity-100' : 'opacity-0')
+          (phase === 'reveal' ? 'opacity-100' : 'pointer-events-none opacity-0')
         }
       >
         {/* Faint scanline texture — the same declassified-file vocabulary the
             station list and found-card use elsewhere in this route. */}
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 opacity-[0.05] [background:repeating-linear-gradient(0deg,#fff_0px,#fff_1px,transparent_1px,transparent_3px)]"
+          className="pointer-events-none fixed inset-0 opacity-[0.05] [background:repeating-linear-gradient(0deg,#fff_0px,#fff_1px,transparent_1px,transparent_3px)]"
         />
 
-        <p className="font-mono text-[11px] tracking-[0.22em] uppercase text-ok">
-          {marker?.subtitle ?? 'Decrypted'}
-        </p>
-        <h1 className="max-w-[18ch] text-[clamp(30px,9vw,48px)] leading-[1.05] tracking-[-0.02em]">
-          {marker?.title ?? marker?.id ?? ''}
-        </h1>
-        {marker?.breadcrumb && (
-          <p className="max-w-[38ch] border-l-2 border-accent/70 pl-3 text-[15px] italic leading-snug text-accent/90">
-            “{marker.breadcrumb}”
+        <div
+          className={
+            'mx-auto w-[min(480px,100%)] px-6 text-center ' +
+            'pt-[calc(64px+env(safe-area-inset-top))] pb-[calc(40px+env(safe-area-inset-bottom))]'
+          }
+        >
+          <p className="font-mono text-[11px] tracking-[0.22em] uppercase text-ok">
+            {marker?.subtitle ?? 'Recovered'}
           </p>
-        )}
-        <p className="max-w-[42ch] text-[14.5px] leading-relaxed text-muted">{marker?.body ?? ''}</p>
+          <h1 className="mt-2 mb-4 break-words text-[clamp(26px,8vw,38px)] leading-[1.1] tracking-[-0.02em]">
+            {marker?.title ?? marker?.id ?? ''}
+          </h1>
 
-        {cta && (
-          <button
-            type="button"
-            onClick={() => onContinue(cta.href ?? '/')}
-            aria-label={cta.label ?? 'Continue'}
-            title={cta.label ?? 'Continue'}
-            className={
-              'mt-3 grid size-16 shrink-0 place-items-center rounded-full bg-accent text-accent-ink ' +
-              'transition-transform duration-150 ease-out-back active:scale-90 animate-glow-pulse'
-            }
-          >
-            <ArrowRightIcon size={22} />
-          </button>
-        )}
+          {marker?.breadcrumb && (
+            <p className="mb-5 border-l-2 border-accent/70 pl-3 text-left text-[15px] italic leading-snug text-accent/90">
+              “{marker.breadcrumb}”
+            </p>
+          )}
+
+          {marker?.reveal && (
+            <div className="rounded-xl border border-accent/30 bg-accent/[0.06] px-4 py-3.5 text-left">
+              <Prose className="break-words text-[15px] leading-relaxed" html={marker.reveal} />
+              {marker?.revealImage && (
+                <img
+                  src={marker.revealImage}
+                  alt=""
+                  className="mt-3 block w-full rounded-lg border border-stroke"
+                />
+              )}
+            </div>
+          )}
+
+          {cta && (
+            <button
+              type="button"
+              onClick={() => onContinue(cta.href ?? '/')}
+              aria-label={cta.label ?? 'Continue'}
+              title={cta.label ?? 'Continue'}
+              className={
+                'mt-7 grid size-16 shrink-0 place-items-center rounded-full bg-accent text-accent-ink ' +
+                'transition-transform duration-150 ease-out-back active:scale-90 animate-glow-pulse'
+              }
+            >
+              <ArrowRightIcon size={22} />
+            </button>
+          )}
+        </div>
       </div>
 
       <button

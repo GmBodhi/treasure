@@ -167,35 +167,33 @@ function LevelDetail({ level, status }) {
 
   return (
     <div className="px-1 pb-5">
-      {done && (
-        <>
-          {/* The payload first. A team reopening an old level is almost always
-              after the thing they have to work with — the hash, the ciphertext,
-              the grid — not the story they already read. */}
-          <div className="mb-4 rounded-xl border border-accent/30 bg-accent/[0.06] px-4 py-3.5">
-            <p className={EYEBROW}>Recovered</p>
-            <Prose className="mt-1 break-words text-[15px] leading-relaxed" html={level.station.reveal} />
-            {level.station.revealImage && (
-              <img
-                src={level.station.revealImage}
-                alt=""
-                className="mt-3 block w-full rounded-lg border border-stroke"
-              />
-            )}
-          </div>
-
-          <p className="mb-3 text-[14.5px] text-muted">{level.story}</p>
-          <p className="mb-4 border-l-2 border-accent/60 pl-3 font-mono text-[13px] text-paper/80">
-            {level.breadcrumb}
-          </p>
-        </>
+      {/* One card either way: what was recovered once found, or where to go
+          until then. Never both stacked — a team reopening an old level wants
+          exactly what the scan itself showed, not a second copy of it. */}
+      {done ? (
+        <div className="mb-4 overflow-hidden rounded-xl border border-accent/30 bg-accent/[0.06] px-4 py-3.5">
+          <p className={EYEBROW}>Recovered at {level.station.location}</p>
+          {level.breadcrumb && (
+            <p className="mt-2 mb-3 border-l-2 border-accent/60 pl-3 text-[13px] italic leading-snug text-accent/90">
+              “{level.breadcrumb}”
+            </p>
+          )}
+          <Prose className="break-words text-[15px] leading-relaxed" html={level.station.reveal} />
+          {level.station.revealImage && (
+            <img
+              src={level.station.revealImage}
+              alt=""
+              className="mt-3 block w-full rounded-lg border border-stroke"
+            />
+          )}
+        </div>
+      ) : (
+        <div className="rounded-xl border border-stroke bg-white/[0.03] px-4 py-3.5">
+          <p className={EYEBROW}>Go to</p>
+          <p className="mt-1 text-[15px]">{level.station.location}</p>
+          <Prose className={`${MONO} mt-1 break-words leading-relaxed`} html={level.station.brief} />
+        </div>
       )}
-
-      <div className="rounded-xl border border-stroke bg-white/[0.03] px-4 py-3.5">
-        <p className={EYEBROW}>{done ? 'Found at' : 'Go to'}</p>
-        <p className="mt-1 text-[15px]">{level.station.location}</p>
-        <Prose className={`${MONO} mt-1 leading-relaxed`} html={level.station.brief} />
-      </div>
 
       {!done && (
         <div className="mt-4">

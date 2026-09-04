@@ -10,11 +10,11 @@ image overlay before the event.
 
 Currently referenced, none of them made yet:
 
-- `l02a-dashboard.png` — the metrics dashboard row, `metric_wellbeing` deprecated
-- `l03b-abtest.png` — the A/B result sheet, `variant_provoke` rolled out at 100%
-- `l04b-report.png` — the summary page of Janice's report, `STATUS: NOT FOUND`
-- `l06b-transcript.png` — published vs raw transcript, timestamps intact
-- `l08a-bridge.png` — the `BH-ASSIST-BRIDGE v2` integration spec
+- `l02a-dashboard.png` — Janice's employee record printout, `STATUS: RESIGNED`
+- `l03b-abtest.png` — the N3 systems-index entry, `ACCESS DENIED`
+- `l04b-report.png` — the repeated system message sheet, `AUDIT PATHWAY: OPEN`
+- `l06b-transcript.png` — the ethics committee audit extract, `REMOVED: 50%`
+- `l08a-bridge.png` — the N3 terminal printout, `ACCESS GRANTED`
 - `l10b-readme.png` — `README_BREADCRUMB.txt`
 
 Keep them roughly 4:3 and legible at arm's length on a phone — the plane is one

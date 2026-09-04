@@ -7,8 +7,18 @@
  * classes have to be written out literally per panel, because Tailwind scans
  * source text and would never see a template-built variant.
  */
+/**
+ * `justify-[safe_center]` over plain `place-items-center`: the AR route locks
+ * page scroll (see `body:has(#root > .ar-route)` in ui.css), so a panel that
+ * is simply centered has nowhere to go when its content is taller than the
+ * viewport — the overflow bleeds equally off the top and bottom with no way
+ * to reach it, which on a short phone screen can swallow the button below a
+ * long brief entirely. `safe center` centers when it fits and falls back to
+ * start-aligned, scrollable-via-`overflow-y-auto` when it does not.
+ */
 export const PANEL_BASE =
-  'col-start-1 row-start-1 grid place-items-center invisible opacity-0 ' +
+  'col-start-1 row-start-1 flex flex-col items-center justify-[safe_center] ' +
+  'overflow-y-auto overscroll-contain invisible opacity-0 ' +
   'transition-[opacity,visibility] duration-[260ms] ease-out-back ' +
   'px-6 pt-[calc(24px+env(safe-area-inset-top))] pb-[calc(24px+env(safe-area-inset-bottom))] ' +
   'bg-[radial-gradient(120%_80%_at_50%_0%,rgb(240_180_41/0.12),transparent_60%)] bg-ink';
