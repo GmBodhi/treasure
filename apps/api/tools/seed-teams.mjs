@@ -1,7 +1,7 @@
 /**
  * Create the roster and print the slips to hand out at registration.
  *
- *   npm run db:teams -- [baseUrl] [adminToken]
+ *   npm run db:teams -- [baseUrl] [adminToken] [--stagger] [--repin]
  *
  * Pins are generated here rather than chosen, because a human picking fifteen
  * of them produces 1234 and 0000 twice. They go through the admin API rather
@@ -12,6 +12,13 @@
  * Re-running is safe: the endpoint upserts, so a rehearsal roster can be
  * renamed or re-pinned without wiping the completions of a team already
  * playing. Pass --repin to roll new pins; without it, existing pins are kept.
+ * A team that already has a route keeps it — rerouting is a separate,
+ * deliberate act (POST /api/admin/routes, or the console).
+ *
+ * --stagger starts each team at a different beat instead of all fifteen opening
+ * at beat 1. It spreads the queue at the first marker and tells the story out
+ * of order; which of those matters more is a decision about your campus, so it
+ * is a flag rather than a default.
  */
 import { TEAMS } from '../../web/src/lib/hunt.js';
 
@@ -63,7 +70,7 @@ const roster = TEAMS.map((code) => {
 const res = await fetch(`${BASE}/api/admin/teams`, {
   method: 'PUT',
   headers,
-  body: JSON.stringify({ teams: roster }),
+  body: JSON.stringify({ teams: roster, order: flags.has('--stagger') ? 'stagger' : 'story' }),
 });
 
 if (!res.ok) {
@@ -71,7 +78,8 @@ if (!res.ok) {
   process.exit(1);
 }
 
-console.log(`\n  ${roster.length} teams on ${BASE}\n`);
+const order = flags.has('--stagger') ? 'stagger' : 'story';
+console.log(`\n  ${roster.length} teams on ${BASE}  (${order} order)\n`);
 console.log('  TEAM     PIN');
 console.log('  ────     ───');
 for (const team of roster) console.log(`  ${team.name.padEnd(8)} ${team.pin}`);

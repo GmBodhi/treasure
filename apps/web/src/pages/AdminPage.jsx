@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ANALYTICS_ENABLED, API_CONFIGURED, api } from '../api/client.js';
 import PageShell, { Card, SectionTitle } from '../components/PageShell.jsx';
 import TeamsConsole from '../components/TeamsConsole.jsx';
-import { LEVELS, LEVEL_COUNT, TEAMS, listStations, routeFor, targetExists } from '../lib/hunt.js';
+import { LEVEL_COUNT, listStations, targetExists } from '../lib/hunt.js';
 
 const MONO = 'font-mono text-[13px] text-muted';
 const CELL = 'px-2 py-1.5 text-left align-top';
@@ -121,48 +121,6 @@ export default function AdminPage() {
           </tbody>
         </table>
       </div>
-
-      <SectionTitle>Team routes</SectionTitle>
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse text-[13px]">
-          <thead>
-            <tr className="text-muted">
-              <th className={CELL}>team</th>
-              {LEVELS.map((level) => (
-                <th key={level.id} className={CELL} title={level.title}>
-                  {level.n}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {TEAMS.map((team) => {
-              const route = routeFor(team);
-              return (
-                <tr key={team} className="border-t border-white/[0.07]">
-                  <td className={`${CELL} font-mono`}>{team}</td>
-                  {route.split('').map((variant, i) => (
-                    <td
-                      key={LEVELS[i].id}
-                      className={`${CELL} font-mono ${variant === 'A' ? 'text-accent' : 'text-ok'}`}
-                      title={LEVELS[i].variants[variant].location}
-                    >
-                      {variant}
-                    </td>
-                  ))}
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-      <Card className="mt-3">
-        <div className={MONO}>
-          Every route has five A&apos;s and five B&apos;s, so no team spends the run on one half of
-          campus. Hover a cell for the location. A team&apos;s route is derived from its code, so
-          every phone that signs in as that team walks the same one.
-        </div>
-      </Card>
 
       <SectionTitle>Scan summary</SectionTitle>
       {ANALYTICS_ENABLED ? (

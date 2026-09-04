@@ -41,6 +41,20 @@ export const adminApi = {
       body: JSON.stringify({ level }),
     }),
 
+  /** The matrix: every team's route, in play order. */
+  routes: () => request('/api/admin/routes', { headers: auth() }),
+
+  /**
+   * Regenerate every route. `force` is required once anyone has started, and
+   * the server refuses without it rather than quietly moving teams mid-run.
+   */
+  regenerateRoutes: (order, force = false) =>
+    request('/api/admin/routes', {
+      method: 'POST',
+      headers: auth(),
+      body: JSON.stringify({ order, force }),
+    }),
+
   resetProgress: (code) =>
     request(`/api/admin/teams/${encodeURIComponent(code)}/progress`, {
       method: 'DELETE',

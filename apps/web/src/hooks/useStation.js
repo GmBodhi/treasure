@@ -34,7 +34,7 @@ export function useStation(level) {
           scene: null,
           error: {
             title: 'Station not ready',
-            body: `Level ${level.n} (${level.station.id}) has no compiled target yet. Compile it in /studio and save it to apps/web/public/targets/${level.station.id}.mind.`,
+            body: `Position ${level.n} on this team's route is station ${level.station.id} (${level.title}), which has no compiled target yet. Compile it in /studio and save it to apps/web/public/targets/${level.station.id}.mind.`,
           },
         });
         return;

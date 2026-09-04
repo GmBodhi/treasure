@@ -45,7 +45,7 @@ function writeAll(all) {
   }
 }
 
-const blank = () => ({ confirmed: { unlocked: 1, completedAt: {} }, pending: {} });
+const blank = () => ({ confirmed: { unlocked: 1, completedAt: {} }, pending: {}, route: null });
 
 function readRaw(teamCode) {
   const stored = readAll()[teamCode];
@@ -56,7 +56,30 @@ function readRaw(teamCode) {
       completedAt: stored.confirmed?.completedAt ?? {},
     },
     pending: stored.pending ?? {},
+    // Cached so a phone reopened in a dead-spot still knows where to send its
+    // team. Without this the first screen after a cold start would have to wait
+    // on the network to render a single station.
+    route: stored.route ?? null,
   };
+}
+
+/** The team's route as last served, or null if this device has never had one. */
+export function readRoute(teamCode) {
+  return readRaw(teamCode).route;
+}
+
+/**
+ * Store the route the server just handed over.
+ *
+ * Separate from `applyServerProgress` because the two arrive together but mean
+ * different things: progress is a running tally, a route is an assignment that
+ * changes only when an organiser regenerates it.
+ */
+export function writeRoute(teamCode, route) {
+  const state = readRaw(teamCode);
+  if (!route) return view(state);
+  write(teamCode, { ...state, route });
+  return route;
 }
 
 function write(teamCode, state) {
@@ -155,7 +178,9 @@ export function applyServerProgress(teamCode, serverProgress, rejected = []) {
     if (!settled) pending[level] = entry;
   }
 
-  return write(teamCode, { confirmed, pending });
+  // Spread `state` forward rather than building a fresh object: the route
+  // lives in the same record and a progress update must not drop it.
+  return write(teamCode, { ...state, confirmed, pending });
 }
 
 /** Local wipe, for handing a device to another team. The server is untouched. */

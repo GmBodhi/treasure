@@ -5,9 +5,11 @@ import {
   applyServerProgress,
   completionsFor,
   readProgress,
+  readRoute,
   readTeam,
   recordFind,
   resetProgress,
+  writeRoute,
   writeTeam,
 } from '../lib/progress.js';
 
@@ -53,7 +55,16 @@ export function useHunt() {
   const [progress, setProgress] = useState(() => readProgress(readTeam() ?? ''));
   const [sync, setSync] = useState(initialSync);
 
-  const levels = useMemo(() => (team ? levelsFor(team) : []), [team]);
+  /**
+   * The team's route, as the server last served it.
+   *
+   * Read from the cache first so a cold start in a corridor renders the right
+   * station immediately. `levelsFor` falls back to a locally derived route when
+   * this is null, which is what keeps a build with no Worker playable.
+   */
+  const [route, setRoute] = useState(() => readRoute(readTeam() ?? ''));
+
+  const levels = useMemo(() => (team ? levelsFor(team, route) : []), [team, route]);
 
   // A second sync starting while the first is in flight would post a stale
   // completion set and race its own answer into state. One at a time; the
@@ -84,6 +95,12 @@ export function useHunt() {
       // Only commit if this is still the team on screen — an await spans a
       // sign-out, and the reply would otherwise resurrect the old team's state.
       if (teamRef.current !== code) return;
+
+      // The route lands before the progress: an organiser who regenerated the
+      // matrix has changed which stations the positions mean, and rendering a
+      // new position against a stale route would point a team at the wrong
+      // marker for one frame.
+      if (answer.route) setRoute(writeRoute(code, answer.route));
 
       const before = progressRef.current.unlocked;
       const next = applyServerProgress(code, answer.progress, answer.rejected);
@@ -148,6 +165,7 @@ export function useHunt() {
     writeTeam(code);
     setTeamState(code);
     setProgress(readProgress(code));
+    setRoute(readRoute(code));
   }, []);
 
   /**
@@ -173,6 +191,7 @@ export function useHunt() {
         const payload = await joinTeam(normalized, pin);
         writeTeam(normalized);
         setTeamState(normalized);
+        setRoute(writeRoute(normalized, payload.route));
         setProgress(applyServerProgress(normalized, payload.progress));
         setSync({ status: 'synced', at: Date.now(), error: null, rejected: [], teammate: null });
         return { ok: true };
@@ -195,6 +214,7 @@ export function useHunt() {
     leaveTeam();
     writeTeam(null);
     setTeamState(null);
+    setRoute(null);
     setSync(initialSync());
   }, []);
 
@@ -227,6 +247,7 @@ export function useHunt() {
     if (!team) return;
     resetProgress(team);
     setProgress(readProgress(team));
+    setRoute(null);
     syncNow();
   }, [team, syncNow]);
 
@@ -241,6 +262,7 @@ export function useHunt() {
     join,
     leave,
     levels,
+    route,
     progress,
     current,
     finished,

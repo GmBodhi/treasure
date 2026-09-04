@@ -805,15 +805,20 @@ const BALANCED_ROUTES = (() => {
 })();
 
 /**
- * A team's variant string, e.g. 'ABBABABAAB'.
+ * A route the server has not supplied — the fallback, not the source of truth.
  *
- * Known teams are spread evenly across the balanced set by index rather than
- * hashed, so no two of them can collide onto the same route — with fifteen teams
- * a birthday collision is likely enough to be worth designing out. Anything else
- * (a spare phone, an organiser testing) falls back to a hash so it still gets a
- * stable, sensible route.
+ * Routes are generated and stored by the Worker (see apps/api/src/lib/routes.js)
+ * and handed to a phone when it joins. They live there rather than here for two
+ * reasons: a route computed in the bundle can be computed for *every* team by
+ * anyone who opens devtools, which is a map of where to camp; and changing an
+ * assignment should not mean rebuilding and redeploying the web app.
+ *
+ * This exists for the case where there is no Worker at all — the solo and
+ * rehearsal path — so the hunt still runs on a laptop with nothing behind it.
+ * It is deliberately the same shape the server returns, so nothing downstream
+ * can tell which one it got.
  */
-export function routeFor(teamCode) {
+export function localRouteFor(teamCode) {
   const code = normalizeTeamCode(teamCode);
   const known = NORMALIZED_TEAMS.indexOf(code);
 
@@ -822,7 +827,34 @@ export function routeFor(teamCode) {
       ? BALANCED_ROUTES[Math.floor((known * BALANCED_ROUTES.length) / TEAMS.length)]
       : BALANCED_ROUTES[hash(code) % BALANCED_ROUTES.length];
 
-  return Array.from({ length: LEVEL_COUNT }, (_, i) => ((bits >> i) & 1 ? 'B' : 'A')).join('');
+  // Story order: position i is beat i. The server can stagger that; this
+  // cannot, because a rehearsal on one laptop has no crush to spread out.
+  return Array.from({ length: LEVEL_COUNT }, (_, i) => ({
+    beat: i + 1,
+    variant: (bits >> i) & 1 ? 'B' : 'A',
+  }));
+}
+
+/**
+ * True when a route is one this build can actually play.
+ *
+ * Checked before use because the route arrives over the network and names
+ * content by number: a route referring to beat 11, or to a variant that does
+ * not exist, is a Worker and a bundle that have drifted apart. Better to fall
+ * back to a playable local route than to render an undefined station.
+ */
+export function isPlayableRoute(route) {
+  return (
+    Array.isArray(route) &&
+    route.length === LEVEL_COUNT &&
+    route.every(
+      (step) =>
+        Number.isInteger(step?.beat) &&
+        step.beat >= 1 &&
+        step.beat <= LEVEL_COUNT &&
+        LEVELS[step.beat - 1]?.variants?.[step?.variant],
+    )
+  );
 }
 
 /** Team codes are typed by people; case and spacing must not decide identity. */
@@ -850,23 +882,30 @@ export function displayTeamCode(code) {
 }
 
 /**
- * The ten levels as this team plays them, with the beat and its chosen variant
- * flattened into one object per level.
+ * The ten levels as this team plays them, in the order the route puts them.
+ *
+ * `n` is the **position** — first station played is 1 — and everything that
+ * gates, counts or stores progress keys off it, including `completions.level`
+ * on the server. `beat` is which of the ten story levels landed there. The two
+ * are equal under story order and come apart under a staggered one, and keeping
+ * them separate is what lets the order change without the progress rules
+ * knowing anything about it.
  */
-export function levelsFor(teamCode) {
-  const route = routeFor(teamCode);
+export function levelsFor(teamCode, route) {
+  const steps = isPlayableRoute(route) ? route : localRouteFor(teamCode);
 
-  return LEVELS.map((level, i) => {
-    const variant = route[i];
-    const station = level.variants[variant];
+  return steps.map((step, i) => {
+    const level = LEVELS[step.beat - 1];
+    const station = level.variants[step.variant];
 
     return {
-      n: level.n,
+      n: i + 1,
+      beat: level.n,
       id: level.id,
       title: level.title,
       story: level.story,
       breadcrumb: level.breadcrumb,
-      variant,
+      variant: step.variant,
       station: {
         ...station,
         targetUrl: `${TARGET_BASE}/${station.id}.mind`,

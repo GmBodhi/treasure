@@ -1,0 +1,20 @@
+-- A team's route, decided here rather than on the phone.
+--
+-- It used to be derived client-side from the team code by a pure function in
+-- the bundle. That had two problems worth a migration. Every phone could
+-- compute every other team's route, which is a map of where to camp; and
+-- changing an assignment meant rebuilding and redeploying the web app, which is
+-- not a thing anyone should be doing at 9am on the day of an event.
+--
+-- Stored as JSON rather than shredded into a routes table: it is a short
+-- ordered list read whole, always for one team, and nothing ever queries across
+-- the positions inside it.
+--
+--   [{ "beat": 1, "variant": "A" }, { "beat": 2, "variant": "B" }, ...]
+--
+-- Position is the index — position 1 is what the team plays first. Beat is
+-- which of the ten story levels sits at that position, so the two come apart
+-- cleanly if the order is ever staggered rather than told straight through.
+-- `completions.level` counts positions, not beats, which is what keeps the
+-- sequence rule in lib/progress.js correct however the order is generated.
+ALTER TABLE teams ADD COLUMN route TEXT;
