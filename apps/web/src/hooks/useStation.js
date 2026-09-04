@@ -58,6 +58,14 @@ export function useStation(level) {
               label: `${level.n} of ${LEVEL_COUNT}`,
               body: level.story,
               breadcrumb: level.breadcrumb,
+              // The payload — the hash, the ciphertext, the room number. It
+              // belongs on the sheet at the moment of the scan: a team that has
+              // just found a marker is standing in front of it wanting the
+              // thing they came for, and making them navigate back to the level
+              // space to read it is three taps at the exact moment they are
+              // least inclined to go looking.
+              reveal: level.station.reveal,
+              revealImage: level.station.revealImage,
               cta: { label: 'Continue', href: '/' },
               overlay: level.station.overlay ?? { type: 'card' },
             },

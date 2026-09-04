@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import Prose from './Prose.jsx';
 import { ArrowRightIcon } from './icons.jsx';
 
 const GLITCH_MS = 260;
@@ -51,11 +52,21 @@ export default function FoundReveal({ marker, onContinue, onClose }) {
         </div>
       )}
 
+      {/* Scrollable, but still centred when the content is short: the outer
+          element scrolls and the inner one is min-h-full + justify-center. A
+          reveal can be two lines or a full interview transcript, and a fixed
+          centred column would simply cut the long ones off mid-cipher. */}
       <div
         className={
-          'relative z-10 flex h-full flex-col items-center justify-center gap-5 px-6 text-center ' +
+          'relative z-10 h-full overflow-y-auto overscroll-contain ' +
           'transition-opacity duration-700 ease-out-back ' +
           (phase === 'reveal' ? 'opacity-100' : 'opacity-0')
+        }
+      >
+      <div
+        className={
+          'flex min-h-full flex-col items-center justify-center gap-5 px-6 text-center ' +
+          'pt-[calc(56px+env(safe-area-inset-top))] pb-[calc(32px+env(safe-area-inset-bottom))]'
         }
       >
         {/* Faint scanline texture — the same declassified-file vocabulary the
@@ -76,6 +87,28 @@ export default function FoundReveal({ marker, onContinue, onClose }) {
             “{marker.breadcrumb}”
           </p>
         )}
+        {/* The payload, ahead of the story. Same order as the level space, and
+            for the same reason: this is the thing the team came to collect.
+            Left-aligned because it is often a cipher or an identifier, and a
+            centred block of monospace is unreadable and easy to transcribe
+            wrong. */}
+        {marker?.reveal && (
+          <div className="w-full max-w-[42ch] rounded-xl border border-accent/30 bg-accent/[0.06] px-4 py-3.5 text-left">
+            <p className="font-mono text-[11px] tracking-[0.18em] uppercase text-accent">Recovered</p>
+            <Prose
+              className="mt-1 break-words text-[15px] leading-relaxed text-paper"
+              html={marker.reveal}
+            />
+            {marker.revealImage && (
+              <img
+                src={marker.revealImage}
+                alt=""
+                className="mt-3 block w-full rounded-lg border border-stroke"
+              />
+            )}
+          </div>
+        )}
+
         <p className="max-w-[42ch] text-[14.5px] leading-relaxed text-muted">{marker?.body ?? ''}</p>
 
         {cta && (
@@ -92,6 +125,7 @@ export default function FoundReveal({ marker, onContinue, onClose }) {
             <ArrowRightIcon size={22} />
           </button>
         )}
+      </div>
       </div>
 
       <button

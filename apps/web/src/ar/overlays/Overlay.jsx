@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import Primitives from './Primitives.jsx';
 
 /**
@@ -54,6 +55,66 @@ function Card({ marker, overlay }) {
 }
 
 /**
+ * An image overlay that refuses to render as a blank rectangle.
+ *
+ * A-Frame fails a missing texture silently: `a-image` draws its plane with no
+ * material and nothing reaches the console. On a marker that is
+ * indistinguishable from a broken app, and a team standing in a corridor will
+ * conclude exactly that and start rescanning something that already worked.
+ *
+ * The check has to be a real image load, not a HEAD request. Pages answers a
+ * missing asset with the SPA fallback — 200, and index.html in the body — so a
+ * status check says the file is fine and the decode is what actually fails.
+ * Loading it here asks the same question the renderer will.
+ *
+ * Falling back to the card is not a placeholder: the card is a designed overlay
+ * that reads as intentional, and since the payload now appears on the reveal
+ * sheet the moment the marker is found, nothing the team needs is lost with the
+ * picture.
+ */
+function ImageOverlay({ marker, overlay }) {
+  const [status, setStatus] = useState('loading');
+
+  useEffect(() => {
+    if (!overlay.src) {
+      setStatus('failed');
+      return undefined;
+    }
+
+    let cancelled = false;
+    const probe = new Image();
+    probe.onload = () => !cancelled && setStatus('ok');
+    probe.onerror = () => {
+      if (cancelled) return;
+      // Loud on purpose. This is the one failure an organiser can still fix
+      // between two teams reaching the station, and it is invisible otherwise.
+      console.warn(`[overlay] ${marker.id}: image ${overlay.src} did not load — falling back to a card`);
+      setStatus('failed');
+    };
+    probe.src = overlay.src;
+
+    return () => {
+      cancelled = true;
+    };
+  }, [overlay.src, marker.id]);
+
+  // Nothing during the probe rather than a card that would be swapped out a
+  // frame later: the texture is usually cached and the flicker would be worse
+  // than the wait.
+  if (status === 'loading') return null;
+  if (status === 'failed') return <Card marker={marker} overlay={overlay} />;
+
+  return (
+    <a-image
+      src={overlay.src}
+      width={String(overlay.width ?? 1)}
+      height={String(overlay.height ?? 0.552)}
+      position={overlay.position ?? '0 0 0.02'}
+    />
+  );
+}
+
+/**
  * Placement sits on a wrapper so an animation on the model can spin it about
  * its own axis. Both on one entity and the two euler rotations fight, which
  * reads as the model tumbling.
@@ -89,14 +150,7 @@ export default function Overlay({ marker }) {
       );
 
     case 'image':
-      return (
-        <a-image
-          src={overlay.src}
-          width={String(overlay.width ?? 1)}
-          height={String(overlay.height ?? 0.552)}
-          position={overlay.position ?? '0 0 0.02'}
-        />
-      );
+      return <ImageOverlay marker={marker} overlay={overlay} />;
 
     case 'primitives':
       return <Primitives overlay={overlay} />;
