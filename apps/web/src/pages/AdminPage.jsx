@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ANALYTICS_ENABLED, API_CONFIGURED, api } from '../api/client.js';
 import PageShell, { Card, SectionTitle } from '../components/PageShell.jsx';
+import TeamsConsole from '../components/TeamsConsole.jsx';
 import { LEVELS, LEVEL_COUNT, TEAMS, listStations, routeFor, targetExists } from '../lib/hunt.js';
 
 const MONO = 'font-mono text-[13px] text-muted';
@@ -75,6 +76,8 @@ export default function AdminPage() {
       lede="Ten story levels, each in two places. Every team plays all ten in order; which of the two they get at each level is their route."
       width="max-w-[1000px]"
     >
+      <TeamsConsole />
+
       <SectionTitle>Stations</SectionTitle>
       <Card className="mb-3">
         <div className={MONO}>
@@ -156,8 +159,8 @@ export default function AdminPage() {
       <Card className="mt-3">
         <div className={MONO}>
           Every route has five A&apos;s and five B&apos;s, so no team spends the run on one half of
-          campus. Hover a cell for the location. Progress lives on each team&apos;s own device — if a
-          phone dies, the level space has a reset, and a team can be walked back to where they were.
+          campus. Hover a cell for the location. A team&apos;s route is derived from its code, so
+          every phone that signs in as that team walks the same one.
         </div>
       </Card>
 

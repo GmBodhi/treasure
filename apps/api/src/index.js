@@ -1,8 +1,10 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { HTTPException } from 'hono/http-exception';
+import { admin } from './routes/admin.js';
 import { experiences } from './routes/experiences.js';
 import { scans } from './routes/scans.js';
+import { teams } from './routes/teams.js';
 
 /**
  * @type {Hono<{ Bindings: Env }>}
@@ -20,7 +22,9 @@ app.use('*', (c, next) =>
   cors({
     origin: c.env.CORS_ORIGIN === '*' ? '*' : c.env.CORS_ORIGIN.split(',').map((o) => o.trim()),
     allowMethods: ['GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowHeaders: ['content-type'],
+    // `authorization` carries the team token on every sync, so it has to be
+    // on the allow-list or the preflight fails and no phone can report a find.
+    allowHeaders: ['content-type', 'authorization'],
     // The scan beacon and the target download are both read by the client.
     exposeHeaders: ['content-length'],
     maxAge: 86_400,
@@ -37,6 +41,8 @@ app.get('/healthz', (c) => c.json({ ok: true }));
 
 app.route('/api/experiences', experiences);
 app.route('/api/scans', scans);
+app.route('/api/teams', teams);
+app.route('/api/admin', admin);
 
 app.notFound((c) => c.json({ error: 'Not found' }, 404));
 

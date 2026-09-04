@@ -835,6 +835,21 @@ export function isKnownTeam(code) {
 }
 
 /**
+ * A code as it is printed on the slip, from the code as it is stored.
+ *
+ * Identity is the normalised form — that is what the server keys on and what a
+ * team gets whichever way they type it. But `BC07` is not what anyone was
+ * handed, and a team checking they are on the right run should see the string
+ * on their wristband. Unknown codes come back unchanged; there is no format to
+ * restore them to.
+ */
+export function displayTeamCode(code) {
+  const normalized = normalizeTeamCode(code);
+  const known = NORMALIZED_TEAMS.indexOf(normalized);
+  return known >= 0 ? TEAMS[known] : normalized;
+}
+
+/**
  * The ten levels as this team plays them, with the beat and its chosen variant
  * flattened into one object per level.
  */

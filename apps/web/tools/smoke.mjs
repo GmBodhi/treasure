@@ -7,6 +7,7 @@ import puppeteer from 'puppeteer';
 const BASE = process.argv[2] ?? process.env.APP_BASE ?? 'https://192.168.1.4:5173';
 const ROUTES = [
   ['/', 'Operation Breadcrumb'],
+  ['/leaderboard', 'Standings'],
   ['/markers', 'Printable markers'],
   ['/studio', 'Target studio'],
   ['/admin', 'Operation Breadcrumb console'],

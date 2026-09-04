@@ -26,6 +26,22 @@
     "MAX_TARGET_BYTES": "10485760",
     // Rows kept per experience. D1 has room to spare; this only stops an
     // unattended demo growing without bound.
-    "MAX_SCANS": "10000"
+    "MAX_SCANS": "10000",
+
+    // How many levels a full run is. Only the leaderboard needs it, to know
+    // which teams have finished rather than merely got a long way.
+    "LEVEL_COUNT": "10",
+
+    // Signs team tokens. Both of the values below are dev defaults so a fresh
+    // clone runs; a `wrangler secret put NAME` overrides a var of the same
+    // name, so setting them before deploying is the whole of the production
+    // step. Rotating TEAM_SECRET signs every phone out, which on the day means
+    // fifteen teams re-entering a pin — do it before the event, not during.
+    "TEAM_SECRET": "dev-only-run-wrangler-secret-put-TEAM_SECRET",
+
+    // Guards /api/admin: the roster with pins, and the level override. Unset
+    // is not "open", it is a 503 — an unconfigured deployment must not hand out
+    // every team's pin.
+    "ADMIN_TOKEN": "dev-only-run-wrangler-secret-put-ADMIN_TOKEN"
   }
 }

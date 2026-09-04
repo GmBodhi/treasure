@@ -1,4 +1,5 @@
 const SESSION_KEY = 'treasure-ar.session';
+const DEVICE_KEY = 'breadcrumb.device';
 
 /**
  * Where the API lives.
@@ -30,7 +31,7 @@ export const ANALYTICS_ENABLED = Boolean(API_BASE) || import.meta.env.DEV;
  */
 export const API_CONFIGURED = Boolean(API_BASE);
 
-const url = (path) => `${API_BASE}${path}`;
+export const url = (path) => `${API_BASE}${path}`;
 
 /** Stable per-tab id so the server can count unique visitors without cookies. */
 export function sessionId() {
@@ -42,7 +43,29 @@ export function sessionId() {
   return id;
 }
 
-async function request(path, options = {}) {
+/**
+ * Stable per-device id, kept in localStorage rather than sessionStorage.
+ *
+ * `sessionId` is per-tab and resets, which is right for counting visitors and
+ * wrong for a team: this is how the completions table records which of a team's
+ * phones reported a find, and that has to survive the phone being locked, the
+ * tab being restored, and the browser being reopened an hour later.
+ */
+export function deviceId() {
+  try {
+    let id = localStorage.getItem(DEVICE_KEY);
+    if (!id) {
+      id = crypto.randomUUID();
+      localStorage.setItem(DEVICE_KEY, id);
+    }
+    return id;
+  } catch {
+    // Private mode. An anonymous device is better than a failed sync.
+    return 'unknown';
+  }
+}
+
+export async function request(path, options = {}) {
   // Only send content-type when there is a body. On a cross-origin GET the
   // header alone makes the request non-simple, so the browser inserts a CORS
   // preflight — a wasted round-trip for no benefit.
@@ -53,7 +76,14 @@ async function request(path, options = {}) {
   const res = await fetch(url(path), { ...options, headers });
   if (!res.ok) {
     const payload = await res.json().catch(() => ({}));
-    throw new Error(payload.error ?? `${res.status} ${res.statusText}`);
+    const err = new Error(payload.error ?? `${res.status} ${res.statusText}`);
+    // The status rides along on the error, because callers have to tell a
+    // refusal from a dead network: a 401 means ask for the pin again, and a
+    // fetch that never landed means try again in twenty seconds and say
+    // nothing. Matching on the message text to work that out is the version
+    // of this that breaks the first time a message is reworded.
+    err.status = res.status;
+    throw err;
   }
   return res.status === 204 ? null : res.json();
 }

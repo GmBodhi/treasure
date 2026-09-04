@@ -12,6 +12,7 @@
     "db:migrate": "wrangler d1 migrations apply treasure-ar --local",
     "db:migrate:remote": "wrangler d1 migrations apply treasure-ar --remote",
     "db:seed": "node tools/seed.mjs",
+    "db:teams": "node tools/seed-teams.mjs",
     "db:console": "wrangler d1 execute treasure-ar --local --command"
   },
   "dependencies": {

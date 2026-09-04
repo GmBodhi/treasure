@@ -23,6 +23,7 @@
     "db:migrate": "npm run db:migrate --workspace apps/api",
     "db:migrate:remote": "npm run db:migrate:remote --workspace apps/api",
     "db:seed": "npm run db:seed --workspace apps/api",
+    "db:teams": "npm run db:teams --workspace apps/api",
     "test": "npm run test --workspace apps/web"
   },
   "devDependencies": {

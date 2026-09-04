@@ -6,6 +6,7 @@ import HuntPage from './pages/HuntPage.jsx';
 // pull in the compiler and the marker art. Neither belongs in the bundle a phone
 // loads to read its current level, which is the screen teams open most.
 const ScanPage = lazy(() => import('./pages/ScanPage.jsx'));
+const LeaderboardPage = lazy(() => import('./pages/LeaderboardPage.jsx'));
 const MarkersPage = lazy(() => import('./pages/MarkersPage.jsx'));
 const StudioPage = lazy(() => import('./pages/StudioPage.jsx'));
 const AdminPage = lazy(() => import('./pages/AdminPage.jsx'));
@@ -17,6 +18,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<HuntPage />} />
         <Route path="/scan" element={<ScanPage />} />
+        <Route path="/leaderboard" element={<LeaderboardPage />} />
         <Route path="/markers" element={<MarkersPage />} />
         <Route path="/studio" element={<StudioPage />} />
         <Route path="/admin" element={<AdminPage />} />

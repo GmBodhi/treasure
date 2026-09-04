@@ -34,12 +34,17 @@ are git-ignored — megabytes of binary, exactly reproducible from that button �
 so a fresh clone has none, and the AR page says so rather than failing inside
 MindAR.
 
-To also collect scan analytics, run the Worker alongside it:
+That gets you the hunt on one device. For shared progress across a team and the
+leaderboard, run the Worker alongside it:
 
 ```bash
 npm run db:migrate   # create the local D1 database from apps/api/migrations/
 npm run dev          # Worker on :8787 AND the Vite dev server on :5173
+npm run db:teams     # seed the 15 teams and print their pins
 ```
+
+`db:teams` prints the code/pin slips you hand out. See
+[Multiplayer](#multiplayer).
 
 Vite proxies `/api` to the Worker, so development stays same-origin and CORS
 never enters into it. No Cloudflare account is needed — `wrangler dev` simulates
@@ -339,6 +344,103 @@ test exists to catch.
 Adding a hunt is a second entry in `HUNTS`, reachable at `/?e=<id>`, with its
 own `<id>.mind` beside the first.
 
+## Multiplayer
+
+A team is several phones, not one. All of them see the same progress, and the
+leaderboard at `/leaderboard` shows where every team has got to.
+
+### Who decides what
+
+**The client verifies, the server decides.** Only the phone can know that MindAR
+matched the image in front of it — there is no way to re-check a scan after the
+fact, so verification is the scan and nothing else. What the server owns is the
+record: whether a find may be counted, when the team got there, and what every
+other phone on the team sees.
+
+That makes `unlocked` derived, never stored: it is `MAX(level) + 1` over the
+`completions` rows. Two teammates scanning the same marker a second apart write
+the same primary key, so the second is a no-op rather than a double count, and
+the earlier timestamp wins — the honest answer to *when did this team find
+station 4* is whoever got there first.
+
+The server enforces two rules, which are the only two it can:
+
+- **Sequence.** A level whose predecessor is not complete is refused. A jump
+  from 2 to 9 is never a race; it is a bug or a team in devtools. A legitimate
+  client only ever holds a contiguous run, so the rule costs it nothing.
+- **Identity.** A team token is required, and it is issued only for a code and
+  pin that match.
+
+What none of this buys is protection from a team cheating on its own run: the
+clues are in the bundle on their phone, so they can always post their own
+completions. Sequence enforcement, per-device ids and server timestamps make
+that *visible to an organiser* rather than impossible. That is the honest limit,
+and for a campus afternoon it is the right place to stop.
+
+### Authority is not the same as blocking
+
+A scan in a wifi dead-spot still unlocks the level. The find is verified
+locally, the reveal plays, and the level shows as **not sent** until the phone
+can report it — held in `pending`, distinct from the server's `confirmed` copy
+in the same record.
+
+The server still wins on conflict. `confirmed` is replaced wholesale on every
+sync, never merged upward, so an organiser's override lands on every device
+instead of being outvoted by a local tally. A refused level is dropped from
+`pending` rather than re-posted forever.
+
+The alternative — hard authority, no network no unlock — strands a team at a
+marker because of one dead-spot, and there are several on any campus.
+
+### Sync
+
+One endpoint does both jobs. `POST /api/teams/sync` carries every completion the
+device holds and returns the team's merged progress, so a poll and a report are
+the same request, and a phone that was out of signal for twenty minutes with
+three finds to report is the same case as one with nothing to say.
+
+Phones poll every 20 s while the tab is visible, and immediately on becoming
+visible, on `online`, and on a find. The visibility listener is the one that
+matters: a team walks between stations with the phone in a pocket, and the
+moment worth being fresh for is the screen coming back on.
+
+When a sync raises `unlocked`, the rise can only have come from another phone —
+this device's own finds were already counted locally — so the app says so:
+*a teammate found station 4*.
+
+### Joining
+
+Code and pin, both from the registration slip. The code decides which of the two
+routes the team walks; the pin is what stops a team opening a rival's run, which
+matters now that there is a board to be top of. Codes are printed on wristbands
+and guessable by design, so a wrong pin and an unknown team give the same answer
+— otherwise the endpoint is a roster anyone can enumerate.
+
+A phone joining halfway through the afternoon — a flat battery swapped for a
+spare — lands on the level the team is actually on, because `join` returns the
+team's progress with the token.
+
+A wrong pin is refused. A **network failure at the gate is not**: the team is let
+in, marked *not connected*, with a reconnect prompt. A wifi blip in the most
+crowded corner of campus must not stop a team from starting.
+
+### Without a Worker
+
+A build with no `VITE_API_BASE` has nothing to sign into, so the pin field
+disappears, progress stays on the device, and `/leaderboard` says why it is
+empty. This is the dev and rehearsal path, and it is why `npm run dev:web` alone
+still works.
+
+### Organiser console
+
+`/admin` holds the roster with pins, each team's level, how many phones they are
+playing on, and a per-team override for when a phone ends up in a fountain.
+Lowering the override deletes the levels above; raising it backfills them,
+marked `organiser` in `device_id` so the table still says how each row got
+there. It is behind `ADMIN_TOKEN`, kept in `sessionStorage` — the console gets
+opened on whatever laptop is on the desk, and a token that survives the tab
+closing is a token still on a borrowed machine tomorrow.
+
 ## Markers
 
 `src/lib/markers.js` generates the artwork as SVG, deterministically from a
@@ -388,8 +490,9 @@ canvas stream showing each marker in turn, runs the real pipeline, and asserts
 every target in the manifest fires `targetFound`. It is the only way to prove a
 compiled `.mind` actually matches the artwork without printing anything.
 
-Neither runner needs the API — the hunt is static, so `npm run dev:web` and a
-compiled target are the whole fixture.
+Neither runner needs the API. The hunt renders and unlocks without one, so
+`npm run dev:web` and a compiled target are the whole fixture; what a missing
+Worker costs is shared progress and the board, not the pipeline under test.
 
 ```bash
 npm test --workspace apps/web                     # both runners against :5173
@@ -416,13 +519,14 @@ at the default Windows location.
 A Cloudflare Worker (Hono) with D1 for storage, deployed separately from the app
 and called cross-origin.
 
-**Only `/api/scans*` is still on the app's path.** Clues moved into the bundle
-and targets moved into `public/targets/`, so the experience and target endpoints
-below — and the `seed/` pipeline that feeds them — are no longer used by
-`apps/web`. They still work, and are kept for anyone who wants the
-server-authored shape back; but nothing in the app calls them, and
-`apps/api/seed/experiences.seed.json` is a historical copy of the demo hunt, not
-its source. `src/lib/clues.js` is.
+**`/api/teams*` is the part the hunt depends on** — see
+[Multiplayer](#multiplayer). `/api/scans*` is optional analytics on top of it.
+
+The experience and target endpoints below are neither. Clues moved into the
+bundle and targets moved into `public/targets/`, so nothing in `apps/web` calls
+them; they still work, and are kept for anyone who wants the server-authored
+shape back. `apps/api/seed/experiences.seed.json` is a historical copy of the
+demo hunt, not its source — `src/lib/hunt.js` is.
 
 All paths below are inside `apps/api/`.
 
@@ -430,15 +534,27 @@ All paths below are inside `apps/api/`.
 | --- | --- |
 | `wrangler.jsonc` | bindings, vars, compatibility date |
 | `src/index.js` | CORS, security headers, routing, error shape |
-| `src/routes/experiences.js` | manifest CRUD, target upload/serve |
+| `src/routes/teams.js` | join, sync, leaderboard |
+| `src/routes/admin.js` | roster with pins, level override, team reset |
+| `src/routes/experiences.js` | manifest CRUD, target upload/serve *(unused by the app)* |
 | `src/routes/scans.js` | scan ingest + the analytics rollup |
+| `src/lib/auth.js` | team tokens (HMAC), admin token, code normalisation |
+| `src/lib/progress.js` | read/merge a team's completions |
 | `src/lib/targets.js` | chunked BLOB read/write |
 | `src/lib/http.js` | `badRequest` / `notFound` / `tooLarge` |
 | `migrations/` | D1 schema, applied by `wrangler d1 migrations apply` |
 
 | Endpoint | Purpose |
 | --- | --- |
-| `POST /api/scans` | record one marker hit — **the only endpoint the app uses** |
+| `POST /api/teams/join` | code + pin → a team token and the team's progress |
+| `POST /api/teams/sync` | **the one the hunt runs on** — post this device's finds, get the team's |
+| `GET /api/teams/leaderboard` | public standings |
+| `GET /api/teams/:code/progress` | one team's progress, unauthenticated read |
+| `GET /api/admin/teams` | roster **with pins** — admin token |
+| `PUT /api/admin/teams` | create or replace the roster — admin token |
+| `POST /api/admin/teams/:code/unlock` | set a team's level by hand — admin token |
+| `DELETE /api/admin/teams/:code/progress` | wipe a team's record — admin token |
+| `POST /api/scans` | record one marker hit (analytics; optional) |
 | `GET /api/scans` | recent scans |
 | `GET /api/scans/summary` | per-marker rollup |
 | `GET /api/experiences` | list *(unused by the app)* |
@@ -535,23 +651,40 @@ settings, because the build runs from the repo root:
 | Build command | `npm run build` |
 | Output directory | `dist` |
 
-and `VITE_API_BASE` as a build-time environment variable if you want analytics.
+and `VITE_API_BASE` as a build-time environment variable pointing at the
+deployed Worker. Without it the build has no server, so progress stays on one
+device and there is no leaderboard.
 
-### apps/api — Workers (optional)
+### apps/api — Workers
+
+Required for shared progress and the leaderboard. Without it the app falls back
+to single-device play; see [Multiplayer](#multiplayer).
 
 ```bash
 npm run db:create                 # prints a database_id
 # paste it into apps/api/wrangler.jsonc -> d1_databases[0].database_id
 npm run db:migrate:remote         # apply migrations to the real database
+
+npx wrangler secret put TEAM_SECRET --cwd apps/api    # signs team tokens
+npx wrangler secret put ADMIN_TOKEN --cwd apps/api    # guards /api/admin
+
 npm run deploy:api
+npm run db:teams -- https://your-worker.workers.dev "$ADMIN_TOKEN"
 ```
+
+Both secrets have dev defaults in `wrangler.jsonc` so a fresh clone runs. A
+`wrangler secret put` overrides the var of the same name, which is the whole of
+the production step — do it before the event, not during: rotating
+`TEAM_SECRET` signs every phone out, and fifteen teams re-entering a pin
+mid-hunt is not a good afternoon.
 
 Set `CORS_ORIGIN` in `apps/api/wrangler.jsonc` to the Pages origin before going
 public. `*` is a development default, not a deployment one.
 
-Nothing needs seeding: the scans table fills itself, and the hunt is in the
-bundle. `npm run db:seed` still exists and still works against the experience
-endpoints, but no part of the app reads what it writes.
+`npm run db:teams` seeds the roster and prints the code/pin slips to hand out.
+It upserts, so re-running before the event keeps the progress of a team that has
+already started; pass `--repin` to roll new pins. `npm run db:seed` is unrelated
+— it feeds the experience endpoints, which no part of the app reads.
 
 ### Pages routing
 
@@ -595,31 +728,39 @@ apps/web/                       -> Cloudflare Pages
   src/
     main.jsx                    root render (no StrictMode - see above)
     App.jsx                     routes; operator pages are lazy
-    api/client.js               scan beacon, session id, analytics on/off
+    api/client.js               fetch helper, device + session ids, API on/off
+    api/teams.js                join, sync, leaderboard
+    api/admin.js                organiser roster + overrides
     ar/
       aframe.js                 ordered dynamic import of A-Frame + MindAR
       ArScene.jsx               the scene, and the whole camera lifecycle
       camera.js                 lens selection, zoom, torch, stream interception
       overlays/                 one component per overlay type
-    components/                 HUD, panels, camera controls, buttons, shell
-    hooks/                      camera state, experience fetch, page visibility
-    lib/clues.js                hard-coded hunts - the content you edit
+    components/                 HUD, panels, camera controls, sync status, shell
+    hooks/useHunt.js            team, route, progress, and the sync loop
+    hooks/                      camera state, station load, page visibility
+    lib/hunt.js                 the 10x2 levels and routes - the content you edit
+    lib/progress.js             this device's copy: confirmed + pending
     lib/markers.js              generated marker artwork (SVG, seeded)
     lib/describeError.js        raw failure -> copy a user can act on
     pages/                      one per route
     styles/ui.css               Tailwind entry, @theme tokens, A-Frame overrides
   tools/                        model generator, target compiler, test runners
 
-apps/api/                       -> Cloudflare Workers (scan analytics; optional)
+apps/api/                       -> Cloudflare Workers (shared progress + analytics)
   wrangler.jsonc                Worker name, D1 binding, vars
   src/
     index.js                    CORS, security headers, routing, error shape
+    routes/teams.js             join, sync, leaderboard
+    routes/admin.js             roster with pins, level override, reset
     routes/                     experiences.js, scans.js
+    lib/auth.js                 team + admin tokens
+    lib/progress.js             read/merge a team's completions
     lib/targets.js              chunked BLOB read/write
     lib/http.js                 badRequest / notFound / tooLarge
   migrations/                   D1 schema
   seed/                         demo manifest + locally compiled .mind
-  tools/                        dev runner, seeder
+  tools/                        dev runner, seeders (db:seed, db:teams)
 ```
 
 ## Environment
@@ -631,6 +772,9 @@ Copy `.env.example` to `.env`. Everything has a working default.
 | `CORS_ORIGIN` | `wrangler.jsonc` vars | `*` | comma-separated origins allowed to call the API |
 | `MAX_TARGET_BYTES` | `wrangler.jsonc` vars | `10485760` | upload cap for `.mind` files |
 | `MAX_SCANS` | `wrangler.jsonc` vars | `10000` | scan rows kept per experience |
+| `LEVEL_COUNT` | `wrangler.jsonc` vars | `10` | levels in a full run; the leaderboard uses it to mark a team finished |
+| `TEAM_SECRET` | `wrangler.jsonc` vars → **secret** | dev placeholder | signs team tokens. `wrangler secret put` before deploying; rotating it signs every phone out |
+| `ADMIN_TOKEN` | `wrangler.jsonc` vars → **secret** | dev placeholder | guards `/api/admin`. Unset is a 503, not open |
 | `API_PORT` | local | `8787` | port `wrangler dev` listens on; Vite proxies here |
 | `TLS_CERT` / `TLS_KEY` | local | `certs/*.pem` | present, so both dev servers use HTTPS |
-| `VITE_API_BASE` | build | empty | absolute URL of the deployed Worker. Empty means scan analytics is off and the hunt is fully self-contained; empty is also correct in dev, where Vite proxies `/api` |
+| `VITE_API_BASE` | build | empty | absolute URL of the deployed Worker. Empty means no shared progress, no leaderboard and no analytics — the hunt runs single-device. Empty is also correct in dev, where Vite proxies `/api` |

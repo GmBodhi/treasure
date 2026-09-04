@@ -22,7 +22,25 @@ import { describeError } from '../lib/describeError.js';
 export default function ScanPage() {
   const navigate = useNavigate();
   const { team, current, finished, complete } = useHunt();
-  const { status: loadStatus, scene, error: loadError } = useStation(current);
+
+  /**
+   * The level this scan session is for, pinned at mount.
+   *
+   * `current` moves on its own now: a teammate finding this station while you
+   * are standing in front of the marker advances the team, and following that
+   * would swap the compiled target out from under a running tracker and point
+   * the camera at a station this phone has not been sent to. So the scan holds
+   * the level it started with, and `superseded` says when the team has moved
+   * past it — which is a thing to tell somebody, not to silently act on.
+   */
+  const [pinned, setPinned] = useState(current);
+  useEffect(() => {
+    if (!pinned && current) setPinned(current);
+  }, [current, pinned]);
+
+  const superseded = pinned != null && (finished || current == null || current.n !== pinned.n);
+
+  const { status: loadStatus, scene, error: loadError } = useStation(pinned);
 
   const hidden = usePageHidden();
   const camera = useCamera();
@@ -48,8 +66,8 @@ export default function ScanPage() {
 
   // The AR callbacks fire from DOM listeners, so they read through refs rather
   // than closing over values a re-render could stale out.
-  const levelRef = useRef(current);
-  levelRef.current = current;
+  const levelRef = useRef(pinned);
+  levelRef.current = pinned;
   const completeRef = useRef(complete);
   completeRef.current = complete;
 
@@ -183,7 +201,7 @@ export default function ScanPage() {
     setState('found');
     setRevealed(true);
     navigator.vibrate?.(18);
-    completeRef.current(level.n);
+    completeRef.current(level.n, level.station.id);
     api.reportScan({ experienceId: 'breadcrumb', markerId: hit.id, targetIndex: level.n });
   }, []);
 
@@ -205,9 +223,12 @@ export default function ScanPage() {
     else navigate('/');
   };
 
-  // Nothing to scan for: no team on this device, or the trail is already run
-  // out. Either way the level space is the only sensible place to be.
-  if (!team || finished) return <Navigate to="/" replace />;
+  // Nothing to scan for: no team on this device, or the trail was already run
+  // out before this screen opened. Either way the level space is the only
+  // sensible place to be. `pinned` guards the second half — a team finishing
+  // mid-scan is `superseded`, handled below, not a redirect out of a reveal
+  // somebody is still reading.
+  if (!team || (finished && !pinned)) return <Navigate to="/" replace />;
 
   return (
     <div className="ar-route">
@@ -227,11 +248,30 @@ export default function ScanPage() {
 
       {revealed && <FoundReveal marker={marker} onContinue={handleContinue} onClose={stopAr} />}
 
+      {/* Someone else got there first. Shown over everything except a reveal
+          this phone has already earned, because the one thing worse than
+          scanning a marker your team no longer needs is being told so while
+          you are reading what you found. */}
+      {superseded && !revealed && (
+        <div className="fixed inset-x-0 top-[calc(12px+env(safe-area-inset-top))] z-30 mx-auto w-[min(420px,calc(100%-24px))] rounded-xl border border-ok/40 bg-ink/95 px-4 py-3.5">
+          <p className="text-[13.5px] text-paper/90">
+            A teammate found this station. Your team has already moved on.
+          </p>
+          <button
+            type="button"
+            onClick={stopAr}
+            className="mt-2 cursor-pointer font-mono text-[13px] text-ok"
+          >
+            Go to the next level →
+          </button>
+        </div>
+      )}
+
       <main
         data-state={state}
         className="group/ui fixed inset-0 z-10 grid"
       >
-        <StationPanel level={current} onStart={() => startAr()} onBack={() => navigate('/')} />
+        <StationPanel level={pinned} onStart={() => startAr()} onBack={() => navigate('/')} />
         <LoadingPanel label={loadingLabel} />
         <ScanHud
           status={paused ? 'Paused' : state === 'found' ? 'Station found' : 'Scanning'}
