@@ -8,6 +8,9 @@ import { useHunt } from '../hooks/useHunt.js';
 import { LEVEL_COUNT, displayTeamCode, isKnownTeam } from '../lib/hunt.js';
 
 const SHELL = 'mx-auto w-[min(560px,100%)] px-5 pt-[calc(28px+env(safe-area-inset-top))] pb-[calc(40px+env(safe-area-inset-bottom))]';
+// The level space adds room for the sticky camera bar so the last row is never
+// trapped underneath it.
+const SHELL_WITH_BAR = `${SHELL} pb-[calc(132px+env(safe-area-inset-bottom))]`;
 const EYEBROW = 'text-[11px] tracking-[0.18em] uppercase text-accent';
 const MONO = 'font-mono text-[13px] text-muted';
 const FIELD = 'w-full rounded-xl border border-stroke bg-black/30 px-3.5 py-3 font-mono text-paper';
@@ -198,20 +201,23 @@ function LevelDetail({ level, status }) {
         <Prose className={`${MONO} mt-1 leading-relaxed`} html={level.station.brief} />
       </div>
 
+      {/* No button here: the camera is the primary action of the whole screen
+          and lives in the sticky bar below, where it cannot fall under the
+          fold. Measured on a 375x650 viewport, this button sat at y=608 of a
+          650px window — a team had to scroll to find the one thing they came
+          to do. */}
       {!done && (
-        <div className="mt-4">
-          <Button onClick={() => navigate('/scan')}>Open camera</Button>
-          <p className="mt-2.5 text-xs text-paper/40">
-            Find the marker at this location and hold it in frame to unlock level {level.n + 1}.
-            Whoever scans it, the whole team moves up.
-          </p>
-        </div>
+        <p className="mt-4 text-xs text-paper/40">
+          Find the marker at this location and hold it in frame to unlock level {level.n + 1}.
+          Whoever scans it, the whole team moves up.
+        </p>
       )}
     </div>
   );
 }
 
 export default function HuntPage() {
+  const navigate = useNavigate();
   const {
     team,
     join,
@@ -244,7 +250,7 @@ export default function HuntPage() {
   const pending = new Set(progress.pending);
 
   return (
-    <div className={SHELL}>
+    <div className={finished ? SHELL : SHELL_WITH_BAR}>
       <div className="flex items-baseline justify-between gap-4">
         <p className={EYEBROW}>Operation Breadcrumb</p>
         <button type="button" onClick={leave} className={`${MONO} cursor-pointer`}>
@@ -301,6 +307,20 @@ export default function HuntPage() {
           />
         ))}
       </ul>
+
+      {/* The primary action, pinned. A team opening the app in a corridor is
+          almost always doing one of two things: reading where to go, or going
+          there. This is the second, and it should never need a scroll. */}
+      {current && (
+        <div className="fixed inset-x-0 bottom-0 z-10 border-t border-stroke bg-ink/95 backdrop-blur-md">
+          <div className="mx-auto w-[min(560px,100%)] px-5 pt-3.5 pb-[calc(14px+env(safe-area-inset-bottom))]">
+            <Button onClick={() => navigate('/scan')}>Open camera</Button>
+            <p className="mt-2 text-center text-xs text-paper/40">
+              Level {current.n} · {current.station.location}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Only where there is no server to disagree with. With one, the next
           poll puts the team's real progress straight back — correct, and a

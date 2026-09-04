@@ -12,6 +12,7 @@ import StationPanel from '../components/StationPanel.jsx';
 import { useCamera } from '../hooks/useCamera.js';
 import { useHunt } from '../hooks/useHunt.js';
 import { usePageHidden } from '../hooks/usePageVisibility.js';
+import { useWakeLock } from '../hooks/useWakeLock.js';
 import { useStation } from '../hooks/useStation.js';
 import { describeError } from '../lib/describeError.js';
 
@@ -63,6 +64,10 @@ export default function ScanPage() {
   // The tab being hidden and the user pressing pause are the same thing to the
   // tracker, but only one of them should survive coming back to the tab.
   const paused = manualPause || hidden;
+
+  // Only while actually scanning. Holding the lock through a manual pause would
+  // defeat the point of the pause button, which exists to save battery.
+  useWakeLock(arActive && !paused);
 
   // The AR callbacks fire from DOM listeners, so they read through refs rather
   // than closing over values a re-render could stale out.
