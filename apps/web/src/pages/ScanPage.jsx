@@ -289,7 +289,7 @@ export default function ScanPage() {
 
       <main
         data-state={state}
-        className="group/ui fixed inset-0 z-10 grid"
+        className="group/ui fixed inset-0 z-10 grid grid-rows-[minmax(0,1fr)]"
       >
         <StationPanel level={pinned} onStart={() => startAr()} onBack={() => navigate('/')} />
         <LoadingPanel label={loadingLabel} />

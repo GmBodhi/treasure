@@ -23,7 +23,7 @@ export const PANEL_BASE =
   'px-6 pt-[calc(24px+env(safe-area-inset-top))] pb-[calc(24px+env(safe-area-inset-bottom))] ' +
   'bg-[radial-gradient(120%_80%_at_50%_0%,rgb(240_180_41/0.12),transparent_60%)] bg-ink';
 
-export const PANEL_INNER = 'w-[min(420px,100%)] text-left';
+export const PANEL_INNER = 'my-auto w-[min(420px,100%)] text-left';
 
 export const SHOW_INTRO = 'group-data-[state=intro]/ui:visible group-data-[state=intro]/ui:opacity-100';
 export const SHOW_LOADING = 'group-data-[state=loading]/ui:visible group-data-[state=loading]/ui:opacity-100';
@@ -33,5 +33,7 @@ export const SHOW_HUD =
   'group-data-[state=found]/ui:visible group-data-[state=found]/ui:opacity-100';
 
 export const EYEBROW = 'mb-2.5 text-xs tracking-[0.16em] uppercase text-accent';
-export const TITLE = 'mb-3 text-[clamp(30px,8vw,42px)] leading-[1.08] tracking-[-0.02em]';
-export const LEDE = 'mb-[22px] text-muted';
+export const TITLE =
+  'mb-3 text-[clamp(30px,8vw,42px)] leading-[1.08] tracking-[-0.02em] ' +
+  'short:mb-2 short:text-[26px]';
+export const LEDE = 'mb-[22px] text-muted short:mb-3';

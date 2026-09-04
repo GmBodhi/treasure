@@ -25,7 +25,10 @@ export default function StationPanel({ level, onStart, onBack }) {
         <h1 className={TITLE}>{level?.title ?? 'Station'}</h1>
         <Prose className={LEDE} html={level?.station?.brief} />
 
-        <ul className="mb-7 grid gap-2 list-none p-0">
+        {/* Framing tips, not instructions. First thing to go when the screen is
+            short — a landscape phone has ~390px of height and the button
+            matters more than the advice. */}
+        <ul className="mb-7 grid gap-2 list-none p-0 short:hidden">
           <li className={BULLET}>Good, even light</li>
           <li className={BULLET}>Whole marker in frame</li>
           <li className={BULLET}>Hold steady for a beat</li>
@@ -44,7 +47,7 @@ export default function StationPanel({ level, onStart, onBack }) {
           ← back to levels
         </button>
 
-        <p className="mt-3.5 text-xs text-paper/40">
+        <p className="mt-3.5 text-xs text-paper/40 short:hidden">
           Video stays on your device. Only station hits are reported.
         </p>
       </div>

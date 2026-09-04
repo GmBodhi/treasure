@@ -5,6 +5,19 @@
  * is what makes those utilities speak the product's vocabulary — `bg-surface`,
  * `text-muted`, `ease-out-back` — instead of raw hex and magic cubic-beziers.
  */
+/**
+ * `short:` — a landscape phone, or a small one in portrait.
+ *
+ * A height query rather than a width one on purpose: the thing that runs out on
+ * the AR screen is vertical room, and a 844x390 landscape phone is "wide" by
+ * every width breakpoint while having less height than an iPhone SE.
+ *
+ * Declared here because the inline `[@media(max-height:560px)]:` form is not
+ * picked up by the v4 source scanner — the classes compiled to nothing at all,
+ * which is the failure mode worth avoiding: no error, no style.
+ */
+@custom-variant short (@media (max-height: 640px));
+
 @theme {
   --color-ink: #0b0e12;
   --color-surface: rgb(16 20 26 / 0.82);
