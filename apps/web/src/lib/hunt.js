@@ -257,7 +257,7 @@ export const LEVELS = [
         brief:
           'Byte values, base sixteen. Convert each pair to a character.<br><br>' +
           '<code>46 49 42 52 45 20 42 4F 58</code><br><br>' +
-          'Two words, nine letters. They are printed on a label on this campus. The label is ' +
+          'Two words, eight letters. They are printed on a label on this campus. The label is ' +
           'the marker.',
         reveal:
           'Stuck to the inside of the cover: an A/B test result sheet.<br><br>' +
@@ -295,9 +295,9 @@ export const LEVELS = [
           'visible lettering, rust, slot shadow or a notice board behind it — a ' +
           'flat painted box alone will not track.',
         brief:
-          'Ten letters, shaken. Two words. Put them back.<br><br>' +
+          'Nine letters, shaken. Two words. Put them back.<br><br>' +
           '<code>X R T O B E T E L</code><br><br>' +
-          'Ten letters, two words. There is one on this campus, bolted to a wall.',
+          'Nine letters, two words. There is one on this campus, bolted to a wall.',
         reveal:
           'A printed page, no envelope, addressed to nobody.<br><br>' +
           'It is Janice\'s report — the summary page only. Two sentences are ' +
