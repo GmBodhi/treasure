@@ -6,10 +6,12 @@ import {
   completionsFor,
   readProgress,
   readRoute,
+  readStartedAt,
   readTeam,
   recordFind,
   resetProgress,
   writeRoute,
+  writeStartedAt,
   writeTeam,
 } from '../lib/progress.js';
 
@@ -74,7 +76,7 @@ export function useHunt() {
    * signal shows the waiting screen, which is the safe way round: the server
    * would refuse those finds anyway.
    */
-  const [startedAt, setStartedAt] = useState(null);
+  const [startedAt, setStartedAt] = useState(() => readStartedAt(readTeam() ?? ''));
 
   /**
    * Re-render exactly when a scheduled start arrives.
@@ -130,7 +132,7 @@ export function useHunt() {
       // new position against a stale route would point a team at the wrong
       // marker for one frame.
       if (answer.route) setRoute(writeRoute(code, answer.route));
-      setStartedAt(answer.startedAt ?? null);
+      setStartedAt(writeStartedAt(code, answer.startedAt));
 
       const before = progressRef.current.unlocked;
       const next = applyServerProgress(code, answer.progress, answer.rejected);
@@ -196,6 +198,7 @@ export function useHunt() {
     setTeamState(code);
     setProgress(readProgress(code));
     setRoute(readRoute(code));
+    setStartedAt(readStartedAt(code));
   }, []);
 
   /**
@@ -222,7 +225,7 @@ export function useHunt() {
         writeTeam(normalized);
         setTeamState(normalized);
         setRoute(writeRoute(normalized, payload.route));
-        setStartedAt(payload.startedAt ?? null);
+        setStartedAt(writeStartedAt(normalized, payload.startedAt));
         setProgress(applyServerProgress(normalized, payload.progress));
         setSync({ status: 'synced', at: Date.now(), error: null, rejected: [], teammate: null });
         return { ok: true };

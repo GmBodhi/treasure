@@ -45,7 +45,7 @@ function writeAll(all) {
   }
 }
 
-const blank = () => ({ confirmed: { unlocked: 1, completedAt: {} }, pending: {}, route: null });
+const blank = () => ({ confirmed: { unlocked: 1, completedAt: {} }, pending: {}, route: null, startedAt: null });
 
 function readRaw(teamCode) {
   const stored = readAll()[teamCode];
@@ -60,7 +60,32 @@ function readRaw(teamCode) {
     // team. Without this the first screen after a cold start would have to wait
     // on the network to render a single station.
     route: stored.route ?? null,
+    startedAt: stored.startedAt ?? null,
   };
+}
+
+/**
+ * When the hunt opened, as this device last heard.
+ *
+ * Cached for one reason: without it every mount renders "not started" until the
+ * first sync answers, roughly a second later. On the level space that is a
+ * flash of the waiting screen; on the scan route it was fatal, because the
+ * guard there redirects and the redirect fired before the answer arrived — so
+ * Open camera bounced straight back and the camera never opened.
+ *
+ * Staleness is not a risk worth trading that for. The server refuses
+ * completions on its own, so a phone briefly believing a stopped hunt is still
+ * open records nothing, and the next poll corrects it.
+ */
+export function readStartedAt(teamCode) {
+  return readRaw(teamCode).startedAt;
+}
+
+export function writeStartedAt(teamCode, startedAt) {
+  const state = readRaw(teamCode);
+  if (state.startedAt === (startedAt ?? null)) return state.startedAt;
+  write(teamCode, { ...state, startedAt: startedAt ?? null });
+  return startedAt ?? null;
 }
 
 /** The team's route as last served, or null if this device has never had one. */
