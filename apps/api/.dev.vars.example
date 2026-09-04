@@ -1,0 +1,7 @@
+# Copy to .dev.vars. Read by `wrangler dev` only — never uploaded by
+# `wrangler deploy`, which is the whole point: these two must not be able
+# to reach a deployment from a file in the repo.
+#
+# Deployed values are set with `wrangler secret put NAME` instead.
+TEAM_SECRET=local-dev-only-not-used-by-any-deployment
+ADMIN_TOKEN=local-dev-admin

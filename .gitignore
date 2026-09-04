@@ -6,6 +6,9 @@ dist/
 # Shared dev certificates
 certs/*.pem
 
+# Local Worker secrets. .dev.vars.example is the committed template.
+apps/*/.dev.vars
+
 # wrangler local D1 state
 .wrangler/
 apps/*/.wrangler/
