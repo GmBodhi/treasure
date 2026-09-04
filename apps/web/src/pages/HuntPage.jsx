@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import Button from '../components/Button.jsx';
 import Prose from '../components/Prose.jsx';
 import { ReconnectPrompt, SyncBadge, TeammateBanner } from '../components/SyncStatus.jsx';
+import WaitingPanel from '../components/WaitingPanel.jsx';
 import { useHunt } from '../hooks/useHunt.js';
 import { LEVEL_COUNT, displayTeamCode, isKnownTeam } from '../lib/hunt.js';
 
@@ -224,10 +225,17 @@ export default function HuntPage() {
     syncNow,
     clearTeammate,
     multiplayer,
+    started,
+    startedAt,
   } = useHunt();
   const [openLevel, setOpenLevel] = useState(null);
 
   if (!team) return <TeamGate onJoin={join} multiplayer={multiplayer} />;
+
+  // Joined, but the organiser has not opened the hunt. Held here rather than
+  // shown a level list with a dead camera button — a disabled control invites
+  // a team to keep pressing it.
+  if (!started) return <WaitingPanel team={team} startsAt={startedAt} onLeave={leave} />;
 
   // Default the open row to wherever the team actually is, so the common case —
   // opening the app to find out what to do next — needs no taps at all.

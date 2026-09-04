@@ -64,6 +64,35 @@ export function useHunt() {
    */
   const [route, setRoute] = useState(() => readRoute(readTeam() ?? ''));
 
+  /**
+   * When the organiser opens the hunt, or null while it is shut.
+   *
+   * Not cached in localStorage, unlike the route. A phone that has been in a
+   * pocket since before the start should find out the hunt is open by asking,
+   * not by trusting what it remembered — and the poll answers within twenty
+   * seconds of "go". The cost of not caching is that a cold start with no
+   * signal shows the waiting screen, which is the safe way round: the server
+   * would refuse those finds anyway.
+   */
+  const [startedAt, setStartedAt] = useState(null);
+
+  /**
+   * Re-render exactly when a scheduled start arrives.
+   *
+   * Without this a future start never opens on its own: the poll keeps
+   * returning the same `startedAt`, React bails on identical state, and the
+   * waiting screen sits there past the announced time until something else
+   * happens to re-render. The timeout fires once, at the moment itself.
+   */
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    if (!startedAt) return undefined;
+    const wait = Date.parse(startedAt) - Date.now();
+    if (wait <= 0) return undefined;
+    const id = setTimeout(() => setTick((n) => n + 1), wait + 250);
+    return () => clearTimeout(id);
+  }, [startedAt]);
+
   const levels = useMemo(() => (team ? levelsFor(team, route) : []), [team, route]);
 
   // A second sync starting while the first is in flight would post a stale
@@ -101,6 +130,7 @@ export function useHunt() {
       // new position against a stale route would point a team at the wrong
       // marker for one frame.
       if (answer.route) setRoute(writeRoute(code, answer.route));
+      setStartedAt(answer.startedAt ?? null);
 
       const before = progressRef.current.unlocked;
       const next = applyServerProgress(code, answer.progress, answer.rejected);
@@ -192,6 +222,7 @@ export function useHunt() {
         writeTeam(normalized);
         setTeamState(normalized);
         setRoute(writeRoute(normalized, payload.route));
+        setStartedAt(payload.startedAt ?? null);
         setProgress(applyServerProgress(normalized, payload.progress));
         setSync({ status: 'synced', at: Date.now(), error: null, rejected: [], teammate: null });
         return { ok: true };
@@ -215,6 +246,7 @@ export function useHunt() {
     writeTeam(null);
     setTeamState(null);
     setRoute(null);
+    setStartedAt(null);
     setSync(initialSync());
   }, []);
 
@@ -257,6 +289,16 @@ export function useHunt() {
   const finished = progress.unlocked > LEVEL_COUNT;
   const current = finished ? null : levels[progress.unlocked - 1] ?? null;
 
+  /**
+   * Is the trail open?
+   *
+   * A start time may be in the future, so this is a comparison rather than a
+   * null check. With no Worker there is no organiser to wait for and the hunt
+   * is always open — otherwise a rehearsal build would sit on a waiting screen
+   * forever with nothing able to release it.
+   */
+  const started = !MULTIPLAYER_ENABLED || (Boolean(startedAt) && Date.parse(startedAt) <= Date.now());
+
   return {
     team,
     join,
@@ -266,6 +308,8 @@ export function useHunt() {
     progress,
     current,
     finished,
+    started,
+    startedAt,
     complete,
     reset,
     sync,

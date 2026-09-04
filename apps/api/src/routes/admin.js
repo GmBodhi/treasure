@@ -3,6 +3,7 @@ import { badRequest, notFound } from '../lib/http.js';
 import { normalizeTeamCode, requireAdmin } from '../lib/auth.js';
 import { readProgress } from '../lib/progress.js';
 import { ORDERS, generateRoutes, parseRoute } from '../lib/routes.js';
+import { STARTED_AT, hasStarted, readStartedAt, writeSetting } from '../lib/settings.js';
 
 /** @type {Hono<{ Bindings: Env }>} */
 export const admin = new Hono();
@@ -189,4 +190,59 @@ admin.delete('/teams/:code/progress', async (c) => {
   const code = normalizeTeamCode(c.req.param('code'));
   await c.env.DB.prepare('DELETE FROM completions WHERE team_code = ?').bind(code).run();
   return c.json({ code, progress: await readProgress(c.env.DB, code) });
+});
+
+/** Whether the hunt is open, and enough context to decide about opening it. */
+admin.get('/state', async (c) => {
+  const startedAt = await readStartedAt(c.env.DB);
+  const counts = await c.env.DB.prepare(
+    `SELECT (SELECT COUNT(*) FROM teams) AS teams,
+            (SELECT COUNT(DISTINCT team_code) FROM completions) AS playing,
+            (SELECT COUNT(*) FROM completions) AS completions`,
+  ).first();
+
+  return c.json({
+    startedAt,
+    started: hasStarted(startedAt),
+    teams: counts?.teams ?? 0,
+    playing: counts?.playing ?? 0,
+    completions: counts?.completions ?? 0,
+  });
+});
+
+/**
+ * Open the hunt.
+ *
+ * `at` is optional and may be in the future, so "we start at three" can be set
+ * once and left alone. Without it the hunt opens now, which is the button an
+ * organiser actually presses.
+ *
+ * Idempotent on purpose: pressing Start twice must not move the clock and
+ * quietly rewrite everyone's elapsed time. Restarting is a separate, explicit
+ * act — DELETE below.
+ */
+admin.post('/start', async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const existing = await readStartedAt(c.env.DB);
+  if (existing && !body?.force) {
+    return c.json({ startedAt: existing, started: hasStarted(existing), alreadyStarted: true });
+  }
+
+  const at = body?.at ? new Date(body.at) : new Date();
+  if (Number.isNaN(at.getTime())) throw badRequest('at must be a date');
+
+  const startedAt = await writeSetting(c.env.DB, STARTED_AT, at.toISOString());
+  return c.json({ startedAt, started: hasStarted(startedAt) });
+});
+
+/**
+ * Close the hunt and clear the clock.
+ *
+ * Leaves completions alone: stopping the hunt and wiping everyone's progress
+ * are different decisions, and conflating them turns a mis-tap into an event
+ * nobody can resume. Resetting progress is per-team, above.
+ */
+admin.delete('/start', async (c) => {
+  await writeSetting(c.env.DB, STARTED_AT, null);
+  return c.json({ startedAt: null, started: false });
 });

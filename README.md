@@ -454,6 +454,35 @@ they have already visited, and their recorded positions would then name the
 wrong stations — so it has to be forced, and the console asks first. Re-running
 `db:teams` never moves a team that already has a route.
 
+### Starting the hunt
+
+Teams can join whenever they are handed a slip; **nothing counts until an
+organiser presses Start** in `/admin`. Until then a joined team sits on a
+waiting screen that names no location and shows no level list — slips get handed
+out early, and a team that can read its first station will go and stand next to
+it.
+
+The waiting screen is the picture of the rule, not the rule. `applyCompletions`
+refuses every completion while the hunt is shut, so a stale tab or a devtools
+session records nothing either. `/scan` redirects back for the same reason: the
+level space holds a team, but a direct URL is a link somebody can keep open.
+
+`startedAt` rides on every sync, so "go" reaches fifteen phones within one poll
+with nobody refreshing anything. It may be set in the future — `POST
+/api/admin/start` takes an optional `at` — so "we begin at three" can be set
+once and left; the phones release themselves when the moment arrives.
+
+Pressing Start twice is safe: the server keeps the first time rather than
+moving the clock and silently rewriting everyone's elapsed time. Stopping is
+confirmed in the console, and leaves every team's progress alone — stopping the
+hunt and wiping progress are different decisions, and conflating them turns a
+mis-tap into an event nobody can resume.
+
+One start time for everyone is also what makes the leaderboard's elapsed column
+mean anything. Without it, "23m" would be twenty-three minutes since whenever
+that particular team happened to begin, which is not a number anyone can
+compare.
+
 ### Joining
 
 Code and pin, both from the registration slip. The code decides which of the two
@@ -479,8 +508,9 @@ still works.
 
 ### Organiser console
 
-`/admin` holds the roster with pins, each team's level, how many phones they are
-playing on, the route matrix with a regenerate control, and a per-team override
+`/admin` holds the Start control and hunt status, the roster with pins, each
+team's level, how many phones they are playing on, the route matrix with a
+regenerate control, and a per-team override
 for when a phone ends up in a fountain. The matrix is behind the token for the
 same reason routes moved off the client: it is a map of where every team will be
 and when.
@@ -589,6 +619,7 @@ All paths below are inside `apps/api/`.
 | `src/routes/scans.js` | scan ingest + the analytics rollup |
 | `src/lib/auth.js` | team tokens (HMAC), admin token, code normalisation |
 | `src/lib/routes.js` | route generation — balanced variants, story or staggered order |
+| `src/lib/settings.js` | event-wide state; currently when the hunt opens |
 | `src/lib/progress.js` | read/merge a team's completions |
 | `src/lib/targets.js` | chunked BLOB read/write |
 | `src/lib/http.js` | `badRequest` / `notFound` / `tooLarge` |
@@ -601,6 +632,9 @@ All paths below are inside `apps/api/`.
 | `GET /api/teams/leaderboard` | public standings |
 | `GET /api/teams/:code/progress` | one team's progress, unauthenticated read |
 | `GET /api/admin/teams` | roster **with pins** — admin token |
+| `GET /api/admin/state` | is the hunt open, and how many teams are playing — admin token |
+| `POST /api/admin/start` | open the hunt (optional `at` for a future start) — admin token |
+| `DELETE /api/admin/start` | close it again, keeping all progress — admin token |
 | `GET /api/admin/routes` | the matrix: every team's route — admin token |
 | `POST /api/admin/routes` | regenerate every route — admin token |
 | `PUT /api/admin/teams` | create or replace the roster — admin token |
@@ -823,6 +857,7 @@ apps/api/                       -> Cloudflare Workers (shared progress + analyti
     routes/                     experiences.js, scans.js
     lib/auth.js                 team + admin tokens
     lib/routes.js               route generation (balanced, story or staggered)
+    lib/settings.js             when the hunt opens
     lib/progress.js             read/merge a team's completions
     lib/targets.js              chunked BLOB read/write
     lib/http.js                 badRequest / notFound / tooLarge

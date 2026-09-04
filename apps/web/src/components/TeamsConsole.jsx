@@ -15,6 +15,75 @@ const CELL = 'px-2 py-1.5 text-left align-middle';
  * desk, hands anyone walking past the ability to join any team.
  */
 /**
+ * The gun.
+ *
+ * Deliberately the first thing on the console, and deliberately the only
+ * control here with a confirmation on it: this is the one action that fifteen
+ * teams feel at once, and the one an organiser reaches for while being talked
+ * at by fifteen people.
+ *
+ * Pressing Start twice is safe — the server keeps the first time rather than
+ * moving the clock — but stopping is confirmed, because a mis-tap during the
+ * run puts every phone back on the waiting screen.
+ */
+function HuntStatus({ state, onStart, onStop, busy }) {
+  const started = state.started;
+  const scheduled = state.startedAt && !started;
+
+  return (
+    <>
+      <SectionTitle>Hunt</SectionTitle>
+      <Card className="mb-3">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <span
+                className={`inline-block size-2 rounded-full ${
+                  started ? 'bg-ok' : scheduled ? 'bg-accent animate-pulse-dot' : 'bg-muted/50'
+                }`}
+              />
+              <span className="text-[15px]">
+                {started ? 'Running' : scheduled ? 'Scheduled' : 'Not started'}
+              </span>
+            </div>
+            <div className={`${MONO} mt-1`}>
+              {state.startedAt
+                ? `${started ? 'Started' : 'Starts'} ${new Date(state.startedAt).toLocaleTimeString()}`
+                : 'Teams can join, but nothing they find will count.'}
+            </div>
+            <div className={`${MONO} mt-0.5`}>
+              {state.teams} teams · {state.playing} playing · {state.completions} stations found
+            </div>
+          </div>
+
+          {started || scheduled ? (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => {
+                if (window.confirm('Stop the hunt? Every phone goes back to the waiting screen. Progress is kept.')) onStop();
+              }}
+              className="cursor-pointer rounded-lg border border-warn/50 px-4 py-2.5 font-mono text-[13px] text-warn disabled:opacity-40"
+            >
+              {busy ? '…' : 'Stop the hunt'}
+            </button>
+          ) : (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={onStart}
+              className="cursor-pointer rounded-full bg-accent px-6 py-3 text-[15px] font-semibold text-accent-ink disabled:opacity-40"
+            >
+              {busy ? 'Starting…' : 'Start the hunt'}
+            </button>
+          )}
+        </div>
+      </Card>
+    </>
+  );
+}
+
+/**
  * The matrix: which station each team plays at each position of their route.
  *
  * Read from the server, not computed here. Routes are generated and stored by
@@ -124,6 +193,7 @@ export default function TeamsConsole() {
   const [token, setToken] = useState(readAdminToken);
   const [teams, setTeams] = useState(null);
   const [matrix, setMatrix] = useState(null);
+  const [state, setState] = useState(null);
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
 
@@ -134,14 +204,20 @@ export default function TeamsConsole() {
       // One await pair rather than two sequential ones: both are small reads
       // and the console is refreshed by hand, so there is no reason to make an
       // organiser watch them arrive one after the other.
-      const [roster, routes] = await Promise.all([adminApi.teams(), adminApi.routes()]);
+      const [roster, routes, hunt] = await Promise.all([
+        adminApi.teams(),
+        adminApi.routes(),
+        adminApi.state(),
+      ]);
       setTeams(roster.teams);
       setMatrix(routes);
+      setState(hunt);
       setError(null);
     } catch (err) {
       setError(err.message);
       setTeams(null);
       setMatrix(null);
+      setState(null);
     } finally {
       setBusy(false);
     }
@@ -187,6 +263,15 @@ export default function TeamsConsole() {
 
   return (
     <>
+      {state && (
+        <HuntStatus
+          state={state}
+          busy={busy}
+          onStart={() => act(() => adminApi.start())}
+          onStop={() => act(() => adminApi.stop())}
+        />
+      )}
+
       <SectionTitle>Teams</SectionTitle>
 
       <Card className="mb-3">

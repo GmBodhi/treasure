@@ -21,7 +21,7 @@ import { describeError } from '../lib/describeError.js';
  */
 export default function ScanPage() {
   const navigate = useNavigate();
-  const { team, current, finished, complete } = useHunt();
+  const { team, current, finished, complete, started } = useHunt();
 
   /**
    * The level this scan session is for, pinned at mount.
@@ -228,7 +228,9 @@ export default function ScanPage() {
   // sensible place to be. `pinned` guards the second half — a team finishing
   // mid-scan is `superseded`, handled below, not a redirect out of a reveal
   // somebody is still reading.
-  if (!team || (finished && !pinned)) return <Navigate to="/" replace />;
+  // `started` guards the direct-URL route to the camera: the level space holds
+  // a team on the waiting screen, but /scan is a link somebody can keep open.
+  if (!team || !started || (finished && !pinned)) return <Navigate to="/" replace />;
 
   return (
     <div className="ar-route">
