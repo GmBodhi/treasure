@@ -195,9 +195,19 @@ function LevelDetail({ level, status }) {
         </>
       )}
 
+      {/* `location` is organiser metadata — it reads like a console entry
+          because that is what it is ("… — its wall emblem"). Showing it before
+          the station is found printed the answer directly above the cipher
+          meant to yield it, which made every puzzle optional. It appears only
+          once a team has actually been there, where it confirms the place and
+          helps them re-read the level later. */}
       <div className="rounded-xl border border-stroke bg-white/[0.03] px-4 py-3.5">
         <p className={EYEBROW}>{done ? 'Found at' : 'Go to'}</p>
-        <p className="mt-1 text-[15px]">{level.station.location}</p>
+        {done ? (
+          <p className="mt-1 text-[15px]">{level.station.location}</p>
+        ) : (
+          <p className="mt-1 text-[15px] text-muted">Work it out from this.</p>
+        )}
         <Prose className={`${MONO} mt-1 leading-relaxed`} html={level.station.brief} />
       </div>
 
@@ -316,7 +326,7 @@ export default function HuntPage() {
           <div className="mx-auto w-[min(560px,100%)] px-5 pt-3.5 pb-[calc(14px+env(safe-area-inset-bottom))]">
             <Button onClick={() => navigate('/scan')}>Open camera</Button>
             <p className="mt-2 text-center text-xs text-paper/40">
-              Level {current.n} · {current.station.location}
+              Level {current.n} of {LEVEL_COUNT}
             </p>
           </div>
         </div>
