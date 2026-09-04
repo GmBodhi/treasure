@@ -89,8 +89,7 @@ export const LEVELS = [
           '<br><br>' +
           '<code>01010100 01010010 01000101 01000001 01010011 01010101 01010010 ' +
           '01000101 01001000 01001111 01010101 01010011 01000101</code><br><br>' +
-          'Two words. Both of them are painted above a door on this campus. ' +
-          'Stand where they are and look up.',
+          'Two words. Somebody painted them on this campus, and you will have to look up.',
         reveal:
           'Taped behind the board: Neodyne\'s signed engagement letter, the only ' +
           'clean thing you\'ll find all day.<br><br>' +
@@ -116,8 +115,8 @@ export const LEVELS = [
           'Breadcrumb hid the first fragment in the dullest possible format: a ' +
           'position in the alphabet, nothing more.<br><br>' +
           '<code>13-5-3-11-1-18-20-1-14-19</code><br><br>' +
-          'It is not a word in any dictionary. It is a name a group of students ' +
-          'sprayed on a wall, and it is still there.',
+          'Ten letters, one name, not in any dictionary. Somebody sprayed it and nobody has ' +
+          'painted over it.',
         reveal:
           'Wedged into the gap behind the sprayed lettering: a folded copy of ' +
           'Neodyne\'s signed engagement letter.<br><br>' +
@@ -168,8 +167,7 @@ export const LEVELS = [
           'Note that Research Division access remains fully restricted.<br>' +
           'Contact Legal before releasing any employee record.<br>' +
           'Escalate nothing without director sign-off.</code><br><br>' +
-          'Two words. On this campus they are attached to an office that exists ' +
-          'to point students at futures. Find its emblem.',
+          'Two words. They are mounted on this campus. Find the emblem that carries them.',
         reveal:
           'Slipped behind the emblem: a printed employee record, pulled fresh ' +
           'from the personnel database.<br><br>' +
@@ -195,8 +193,8 @@ export const LEVELS = [
           'Breadcrumb has a sense of humour. The pointer to a wireless lab arrived ' +
           'as the oldest wireless protocol there is.<br><br>' +
           '<code>.. --- -&nbsp;&nbsp;/&nbsp;&nbsp;-.-. . -. - .-. .</code><br><br>' +
-          'Three letters, then six. A building on this campus carries both in its ' +
-          'name. Its board is what you want.',
+          'Three letters, then six. Something on this campus is named for both. Its board is ' +
+          'what you want.',
         reveal:
           'Taped to the underside of the board: a printed employee record.<br><br>' +
           '<code>NAME: JANICE L.<br>' +
@@ -228,8 +226,8 @@ export const LEVELS = [
         brief:
           'Every letter walked seven places forward through the alphabet. Walk them ' +
           'back.<br><br><code>ZRPSS KLSPCLYF</code><br><br>' +
-          'Two words on a board on this campus. The board carries a third word after ' +
-          'them; you only need these two to find it.',
+          'Two words on a board on this campus. The board carries a third word after them; you ' +
+          'need only these two.',
         reveal:
           'Folded into the frame: a printed systems-index entry, most of it ' +
           'blacked out.<br><br>' +
@@ -251,8 +249,8 @@ export const LEVELS = [
         brief:
           'Byte values, base sixteen. Convert each pair to a character.<br><br>' +
           '<code>46 49 42 52 45 20 42 4F 58</code><br><br>' +
-          'A grey box bolted to an outside wall on this campus, where the internet ' +
-          'physically arrives. Its label is the marker.',
+          'Two words, eight letters. They are printed on a label on this campus. The label is ' +
+          'the marker.',
         reveal:
           'Stuck to the inside of the cover: the same systems-index entry, ' +
           'water-stained.<br><br>' +
@@ -286,10 +284,9 @@ export const LEVELS = [
           'visible lettering, rust, slot shadow or a notice board behind it. A ' +
           'flat painted box alone will not track.',
         brief:
-          'Ten letters, shaken. Two words. Put them back.<br><br>' +
+          'Nine letters, shaken. Two words. Put them back.<br><br>' +
           '<code>X R T O B E T E L</code><br><br>' +
-          'It is the oldest filing system there is, and there is one bolted to a ' +
-          'wall outside a room on this campus where staff sit.',
+          'Nine letters, two words. There is one on this campus, bolted to a wall.',
         reveal:
           'A printed page, no envelope, addressed to nobody. Every line on it is ' +
           'the same sentence that flashed across every screen an hour ago, ' +
@@ -314,8 +311,8 @@ export const LEVELS = [
         brief:
           'Written zig-zag down three lines, then read off line by line.<br><br>' +
           '<code>SANGPRLIDNIBI</code><br><br>' +
-          'Thirteen letters, two words, one of the services sold at a counter on ' +
-          'this campus. Its board is the marker.',
+          'Thirteen letters, two words. Somebody on this campus sells it, and says so on a ' +
+          'board.',
         reveal:
           'Left in the reprint tray, never collected: a single sheet, printed ' +
           'edge to edge with one repeating line:<br><br>' +
@@ -347,8 +344,7 @@ export const LEVELS = [
           'Old phone keypad. Press 2 twice for B. Press 7 four times for S. ' +
           'Spaces separate letters.<br><br>' +
           '<code>22 666 666 8 44 555 33 888 33 555</code><br><br>' +
-          'Two words. On this campus they head a board covered in numbers for ' +
-          'people you are supposed to be able to reach.',
+          'Two words. On this campus they head a board. Everything under them is a number.',
         reveal:
           'Pinned in the corner of the board, same typeface, easy to miss: an ' +
           'internal audit extract.<br><br>' +
@@ -380,8 +376,7 @@ export const LEVELS = [
           'then column.<br><br>' +
           '<code>A B C D E<br>F G H I/J K<br>L M N O P<br>Q R S T U<br>V W X Y Z' +
           '</code><br><br><code>15 32 15 42 22 15 33 13 54</code><br><br>' +
-          'One word. It is stencilled above a list of numbers on something on this ' +
-          'campus that has wheels.',
+          'One word, nine letters. It is stencilled on this campus above a list of numbers.',
         reveal:
           'Slid behind the panel edge: an internal audit extract.<br><br>' +
           '<code>OFFICIAL RECORD: VOLUNTARY RESIGNATION<br>' +
@@ -413,8 +408,8 @@ export const LEVELS = [
         brief:
           'A becomes Z, B becomes Y, and so on to the end. Mirror it.<br><br>' +
           '<code>EZOFZYOVH</code><br><br>' +
-          'One word. It is the first word of a notice on this campus that warns ' +
-          'you nobody is responsible for what you leave behind.',
+          'One word. It is the first word of a notice on this campus, and the notice is a ' +
+          'disclaimer.',
         reveal:
           'Folded into the rack frame: a second audit extract, released without ' +
           'warning.<br><br>' +
@@ -439,8 +434,8 @@ export const LEVELS = [
         brief:
           'Atomic numbers. Take each element\'s symbol and run them together.<br><br>' +
           '<code>6 &nbsp; 3 &nbsp; 7 &nbsp; 53 &nbsp; 6</code><br><br>' +
-          'Six letters. It is what a room on this campus is for, even if the board ' +
-          'outside it uses a different word.',
+          'Six letters. It is what a room on this campus is for. The board outside it uses a ' +
+          'different word.',
         reveal:
           'Under the register on the desk: the same audit extract.<br><br>' +
           '<code>ETHICS COMMITTEE: PERSONNEL STATUS<br>' +
@@ -474,8 +469,7 @@ export const LEVELS = [
           'alphabet.<br><br>' +
           '<code>V &nbsp; XVII &nbsp; XXI &nbsp; IX &nbsp; XII &nbsp; IX &nbsp; ' +
           'II &nbsp; XVIII &nbsp; IX &nbsp; I</code><br><br>' +
-          'Ten letters, one word, and it means balance. Someone painted it on a ' +
-          'wall on this campus for an event.',
+          'Ten letters, one word. Somebody painted it on a wall on this campus for an event.',
         reveal:
           'Behind the emblem: a printout of the breach log, all thirteen ' +
           'entries.<br><br>' +
@@ -504,8 +498,8 @@ export const LEVELS = [
           '🇮🇳 &nbsp;+&nbsp; 🤝 &nbsp;+&nbsp; 📋 &nbsp;→&nbsp; the three initials of a ' +
           'student volunteer body<br>' +
           '🧱 &nbsp;+&nbsp; 🎨 &nbsp;→&nbsp; what they left on it<br><br>' +
-          'Put the initials in front of the second answer. That painted wall on ' +
-          'this campus is the marker.',
+          'Put the initials in front of the second answer. Two words, painted on a wall on ' +
+          'this campus.',
         reveal:
           'Sprayed small, almost invisible, in the corner of the mural: the ' +
           'same thirteen timestamps, copied by hand:<br><br>' +
@@ -544,8 +538,7 @@ export const LEVELS = [
           'for feature matching; include the frame and counter edge.',
         brief:
           'Base64. Decode it.<br><br><code>U0NBTiBUTyBQQVk=</code><br><br>' +
-          'Three words. They are printed above a square black-and-white pattern at ' +
-          'a counter on this campus. That pattern is the marker.',
+          'Three words. They are printed above the marker, at a counter on this campus.',
         reveal:
           'Taped under the counter lip: a printout of a terminal screen, mid-' +
           'session.<br><br>' +
@@ -601,8 +594,7 @@ export const LEVELS = [
           'down, left, left, down, right, right</strong>. Nine letters in order.' +
           '<br><br><code>S &nbsp; W &nbsp; E<br>P &nbsp; T &nbsp; E<br>' +
           'O &nbsp; P &nbsp; S</code><br><br>' +
-          'Two words. They are painted on a board at a small place on this campus ' +
-          'that sells things you do not need.',
+          'Two words. They are painted on a board on this campus, over a counter.',
         reveal:
           'Behind the board: a phone, screen cracked, one video file open and ' +
           'looping. Janice\'s voice, timestamped the day before her badge ' +
@@ -641,8 +633,8 @@ export const LEVELS = [
         brief:
           'Every letter was typed one key to the left on a QWERTY keyboard. Type ' +
           'each one back to the right.<br><br><code>OEISYXRUIB</code><br><br>' +
-          'Ten letters, one word. A branch of engineering. Its batch is scratched ' +
-          'into a table outdoors on this campus, alongside a year.',
+          'Ten letters, one word, a branch of engineering. It is scratched into something ' +
+          'outdoors on this campus, next to a year.',
         reveal:
           'Taped under the tabletop: the same video file, transcribed by hand on ' +
           'a folded sheet, word for word:<br><br>' +
@@ -695,8 +687,8 @@ export const LEVELS = [
           'reading this alphabet all day without noticing.<br><br>' +
           '<code>AABAA BABAB AAAAA ABABB BABAA ABAAA ABBAA AABBA</code><br><br>' +
           '(Standard 24-letter table: I and J share a code, U and V share a code.)' +
-          '<br><br>Eight letters, two words. A wing of this campus exists to ' +
-          'decide whether you were paying attention.',
+          '<br><br>' +
+          'Eight letters, two words. They name a part of this campus.',
         reveal:
           'The last file. <code>README_BREADCRUMB.txt</code>, printed and left ' +
           'where an examiner would find it.<br><br>' +
@@ -729,8 +721,8 @@ export const LEVELS = [
           '<code>HALO</code>, put the columns back in the key\'s original order, ' +
           'then read across the rows. Ignore trailing padding.<br><br>' +
           '<code>ASX &nbsp; CUP &nbsp; MMX &nbsp; PAX</code><br><br>' +
-          'Two words. There is a board at the front of this campus whose only ' +
-          'purpose is to tell you where you already are.',
+          'Two words. There is a board at this campus that carries them, and it is the last ' +
+          'thing Breadcrumb left you.',
         reveal:
           'Taped to the back of the board. <code>README_BREADCRUMB.txt</code>.' +
           '<br><br>' +
@@ -787,15 +779,20 @@ const BALANCED_ROUTES = (() => {
 })();
 
 /**
- * A team's variant string, e.g. 'ABBABABAAB'.
+ * A route the server has not supplied — the fallback, not the source of truth.
  *
- * Known teams are spread evenly across the balanced set by index rather than
- * hashed, so no two of them can collide onto the same route — with fifteen teams
- * a birthday collision is likely enough to be worth designing out. Anything else
- * (a spare phone, an organiser testing) falls back to a hash so it still gets a
- * stable, sensible route.
+ * Routes are generated and stored by the Worker (see apps/api/src/lib/routes.js)
+ * and handed to a phone when it joins. They live there rather than here for two
+ * reasons: a route computed in the bundle can be computed for *every* team by
+ * anyone who opens devtools, which is a map of where to camp; and changing an
+ * assignment should not mean rebuilding and redeploying the web app.
+ *
+ * This exists for the case where there is no Worker at all — the solo and
+ * rehearsal path — so the hunt still runs on a laptop with nothing behind it.
+ * It is deliberately the same shape the server returns, so nothing downstream
+ * can tell which one it got.
  */
-export function routeFor(teamCode) {
+export function localRouteFor(teamCode) {
   const code = normalizeTeamCode(teamCode);
   const known = NORMALIZED_TEAMS.indexOf(code);
 
@@ -804,7 +801,34 @@ export function routeFor(teamCode) {
       ? BALANCED_ROUTES[Math.floor((known * BALANCED_ROUTES.length) / TEAMS.length)]
       : BALANCED_ROUTES[hash(code) % BALANCED_ROUTES.length];
 
-  return Array.from({ length: LEVEL_COUNT }, (_, i) => ((bits >> i) & 1 ? 'B' : 'A')).join('');
+  // Story order: position i is beat i. The server can stagger that; this
+  // cannot, because a rehearsal on one laptop has no crush to spread out.
+  return Array.from({ length: LEVEL_COUNT }, (_, i) => ({
+    beat: i + 1,
+    variant: (bits >> i) & 1 ? 'B' : 'A',
+  }));
+}
+
+/**
+ * True when a route is one this build can actually play.
+ *
+ * Checked before use because the route arrives over the network and names
+ * content by number: a route referring to beat 11, or to a variant that does
+ * not exist, is a Worker and a bundle that have drifted apart. Better to fall
+ * back to a playable local route than to render an undefined station.
+ */
+export function isPlayableRoute(route) {
+  return (
+    Array.isArray(route) &&
+    route.length === LEVEL_COUNT &&
+    route.every(
+      (step) =>
+        Number.isInteger(step?.beat) &&
+        step.beat >= 1 &&
+        step.beat <= LEVEL_COUNT &&
+        LEVELS[step.beat - 1]?.variants?.[step?.variant],
+    )
+  );
 }
 
 /** Team codes are typed by people; case and spacing must not decide identity. */
@@ -832,22 +856,29 @@ export function displayTeamCode(code) {
 }
 
 /**
- * The ten levels as this team plays them, with the beat and its chosen variant
- * flattened into one object per level.
+ * The ten levels as this team plays them, in the order the route puts them.
+ *
+ * `n` is the **position** — first station played is 1 — and everything that
+ * gates, counts or stores progress keys off it, including `completions.level`
+ * on the server. `beat` is which of the ten story levels landed there. The two
+ * are equal under story order and come apart under a staggered one, and keeping
+ * them separate is what lets the order change without the progress rules
+ * knowing anything about it.
  */
-export function levelsFor(teamCode) {
-  const route = routeFor(teamCode);
+export function levelsFor(teamCode, route) {
+  const steps = isPlayableRoute(route) ? route : localRouteFor(teamCode);
 
-  return LEVELS.map((level, i) => {
-    const variant = route[i];
-    const station = level.variants[variant];
+  return steps.map((step, i) => {
+    const level = LEVELS[step.beat - 1];
+    const station = level.variants[step.variant];
 
     return {
-      n: level.n,
+      n: i + 1,
+      beat: level.n,
       id: level.id,
       title: level.title,
       breadcrumb: level.breadcrumb,
-      variant,
+      variant: step.variant,
       station: {
         ...station,
         targetUrl: `${TARGET_BASE}/${station.id}.mind`,

@@ -2,6 +2,8 @@ import { Hono } from 'hono';
 import { badRequest, notFound } from '../lib/http.js';
 import { issueToken, normalizeTeamCode, requireTeam } from '../lib/auth.js';
 import { applyCompletions, readProgress } from '../lib/progress.js';
+import { routeForTeam } from '../lib/routes.js';
+import { hasStarted, readStartedAt } from '../lib/settings.js';
 
 /** @type {Hono<{ Bindings: Env }>} */
 export const teams = new Hono();
@@ -32,10 +34,19 @@ teams.post('/join', async (c) => {
     return c.json({ error: 'That team code and pin do not match' }, 401);
   }
 
+  const levelCount = Number(c.env.LEVEL_COUNT ?? 10);
+
+  const startedAt = await readStartedAt(c.env.DB);
+
   return c.json({
     token: await issueToken(c.env, code),
     team: { code: team.code, name: team.name },
+    startedAt,
     progress: await readProgress(c.env.DB, code),
+    // The route comes back with the token because the phone cannot play
+    // without it, and asking for it separately would put a second round-trip
+    // between a team and their first clue.
+    route: await routeForTeam(c.env.DB, code, levelCount),
   });
 });
 
@@ -61,14 +72,25 @@ teams.post('/sync', async (c) => {
 
   if (completions.length > 64) throw badRequest('too many completions in one sync');
 
-  const { progress, accepted, rejected } = await applyCompletions(
+  const startedAt = await readStartedAt(c.env.DB);
+
+  const { progress, accepted, rejected, reason } = await applyCompletions(
     c.env.DB,
     code,
     completions,
     body?.deviceId,
+    hasStarted(startedAt),
   );
 
-  return c.json({ code, progress, accepted, rejected });
+  // The route rides along on every sync, not just on join. It is a few hundred
+  // bytes, and it means an organiser regenerating routes reaches every phone
+  // through the ordinary poll instead of needing fifteen teams to sign out.
+  const route = await routeForTeam(c.env.DB, code, Number(c.env.LEVEL_COUNT ?? 10));
+
+  // startedAt rides on the sync for the same reason the route does: the poll is
+  // already running, so "go" reaches every phone within one interval without
+  // anybody refreshing anything.
+  return c.json({ code, progress, route, startedAt, accepted, rejected, reason });
 });
 
 /**
@@ -98,6 +120,7 @@ teams.get('/leaderboard', async (c) => {
 
   return c.json({
     levelCount,
+    startedAt: await readStartedAt(c.env.DB),
     at: new Date().toISOString(),
     teams: results.map((row) => ({
       code: row.code,

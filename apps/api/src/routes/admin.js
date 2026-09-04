@@ -2,6 +2,8 @@ import { Hono } from 'hono';
 import { badRequest, notFound } from '../lib/http.js';
 import { normalizeTeamCode, requireAdmin } from '../lib/auth.js';
 import { readProgress } from '../lib/progress.js';
+import { ORDERS, generateRoutes, parseRoute } from '../lib/routes.js';
+import { STARTED_AT, hasStarted, readStartedAt, writeSetting } from '../lib/settings.js';
 
 /** @type {Hono<{ Bindings: Env }>} */
 export const admin = new Hono();
@@ -60,16 +62,89 @@ admin.put('/teams', async (c) => {
     return { code, name: team.name ?? code, pin };
   });
 
+  // Routes are generated here rather than left to the lazy path on join, so
+  // the whole matrix exists before the event starts and can be looked at,
+  // argued with, and regenerated while there is still time.
+  const levelCount = Number(c.env.LEVEL_COUNT ?? 10);
+  const order = ORDERS.includes(body?.order) ? body.order : 'story';
+  const routes = generateRoutes(rows.map((row) => row.code), { levelCount, order });
+
   await c.env.DB.batch(
     rows.map((row) =>
       c.env.DB.prepare(
-        `INSERT INTO teams (code, name, pin, created_at) VALUES (?1, ?2, ?3, ?4)
-         ON CONFLICT (code) DO UPDATE SET name = excluded.name, pin = excluded.pin`,
-      ).bind(row.code, row.name, row.pin, now),
+        `INSERT INTO teams (code, name, pin, route, created_at) VALUES (?1, ?2, ?3, ?4, ?5)
+         ON CONFLICT (code) DO UPDATE SET
+           name  = excluded.name,
+           pin   = excluded.pin,
+           -- Keep a route a team is already walking. Re-running the seed to fix
+           -- a name must not move a team that is three stations in to different
+           -- stations; POST /api/admin/routes is the deliberate way to reroute.
+           route = COALESCE(teams.route, excluded.route)`,
+      ).bind(row.code, row.name, row.pin, JSON.stringify(routes.get(row.code)), now),
     ),
   );
 
   return c.json({ teams: rows.map(({ code, name }) => ({ code, name })) });
+});
+
+/** The matrix: every team's route, in play order. */
+admin.get('/routes', async (c) => {
+  const levelCount = Number(c.env.LEVEL_COUNT ?? 10);
+  const { results } = await c.env.DB.prepare(
+    `SELECT t.code, t.name, t.route, COUNT(c.level) AS completed
+       FROM teams t
+       LEFT JOIN completions c ON c.team_code = t.code
+      GROUP BY t.code, t.name, t.route
+      ORDER BY t.code`,
+  ).all();
+
+  return c.json({
+    levelCount,
+    teams: results.map((row) => ({
+      code: row.code,
+      name: row.name,
+      completed: row.completed,
+      route: parseRoute(row.route, levelCount),
+    })),
+  });
+});
+
+/**
+ * Regenerate the matrix.
+ *
+ * Refuses once anybody has started, unless explicitly forced. Rerouting a team
+ * mid-run sends them to a station they have already been to or one they have no
+ * business at, and their completed positions would then point at the wrong
+ * stations in the record — so the guard is the default and the override has to
+ * be typed.
+ */
+admin.post('/routes', async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const order = ORDERS.includes(body?.order) ? body.order : 'story';
+  const levelCount = Number(c.env.LEVEL_COUNT ?? 10);
+
+  const started = await c.env.DB.prepare('SELECT COUNT(*) AS n FROM completions').first();
+  if (started?.n > 0 && !body?.force) {
+    throw badRequest(
+      `${started.n} completions are already recorded. Rerouting now moves teams mid-run; pass force to do it anyway.`,
+    );
+  }
+
+  const { results } = await c.env.DB.prepare('SELECT code FROM teams ORDER BY code').all();
+  const codes = results.map((row) => row.code);
+  if (!codes.length) throw badRequest('no teams to route');
+
+  const routes = generateRoutes(codes, { levelCount, order });
+  await c.env.DB.batch(
+    codes.map((code) =>
+      c.env.DB.prepare('UPDATE teams SET route = ? WHERE code = ?').bind(
+        JSON.stringify(routes.get(code)),
+        code,
+      ),
+    ),
+  );
+
+  return c.json({ order, teams: codes.length });
 });
 
 /**
@@ -115,4 +190,59 @@ admin.delete('/teams/:code/progress', async (c) => {
   const code = normalizeTeamCode(c.req.param('code'));
   await c.env.DB.prepare('DELETE FROM completions WHERE team_code = ?').bind(code).run();
   return c.json({ code, progress: await readProgress(c.env.DB, code) });
+});
+
+/** Whether the hunt is open, and enough context to decide about opening it. */
+admin.get('/state', async (c) => {
+  const startedAt = await readStartedAt(c.env.DB);
+  const counts = await c.env.DB.prepare(
+    `SELECT (SELECT COUNT(*) FROM teams) AS teams,
+            (SELECT COUNT(DISTINCT team_code) FROM completions) AS playing,
+            (SELECT COUNT(*) FROM completions) AS completions`,
+  ).first();
+
+  return c.json({
+    startedAt,
+    started: hasStarted(startedAt),
+    teams: counts?.teams ?? 0,
+    playing: counts?.playing ?? 0,
+    completions: counts?.completions ?? 0,
+  });
+});
+
+/**
+ * Open the hunt.
+ *
+ * `at` is optional and may be in the future, so "we start at three" can be set
+ * once and left alone. Without it the hunt opens now, which is the button an
+ * organiser actually presses.
+ *
+ * Idempotent on purpose: pressing Start twice must not move the clock and
+ * quietly rewrite everyone's elapsed time. Restarting is a separate, explicit
+ * act — DELETE below.
+ */
+admin.post('/start', async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const existing = await readStartedAt(c.env.DB);
+  if (existing && !body?.force) {
+    return c.json({ startedAt: existing, started: hasStarted(existing), alreadyStarted: true });
+  }
+
+  const at = body?.at ? new Date(body.at) : new Date();
+  if (Number.isNaN(at.getTime())) throw badRequest('at must be a date');
+
+  const startedAt = await writeSetting(c.env.DB, STARTED_AT, at.toISOString());
+  return c.json({ startedAt, started: hasStarted(startedAt) });
+});
+
+/**
+ * Close the hunt and clear the clock.
+ *
+ * Leaves completions alone: stopping the hunt and wiping everyone's progress
+ * are different decisions, and conflating them turns a mis-tap into an event
+ * nobody can resume. Resetting progress is per-team, above.
+ */
+admin.delete('/start', async (c) => {
+  await writeSetting(c.env.DB, STARTED_AT, null);
+  return c.json({ startedAt: null, started: false });
 });

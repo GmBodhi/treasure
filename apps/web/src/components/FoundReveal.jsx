@@ -58,7 +58,7 @@ export default function FoundReveal({ marker, onContinue, onClose }) {
           overflows a centered container can end up unreachable by scroll. */}
       <div
         className={
-          'relative z-10 h-full overflow-y-auto ' +
+          'relative z-10 h-full overflow-y-auto overscroll-contain ' +
           'transition-opacity duration-700 ease-out-back ' +
           (phase === 'reveal' ? 'opacity-100' : 'pointer-events-none opacity-0')
         }

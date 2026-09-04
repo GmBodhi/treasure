@@ -27,7 +27,23 @@ function ago(iso) {
   return `${Math.floor(minutes / 60)}h ${minutes % 60}m ago`;
 }
 
-function Row({ team, rank, levelCount, mine }) {
+/**
+ * Time from the hunt opening to a team's last find.
+ *
+ * Only meaningful because every team started at the same instant — which is
+ * what the organiser's Start button buys. Before that existed, "23m" would have
+ * meant twenty-three minutes since whenever that particular team happened to
+ * begin, which is not a number anyone can compare.
+ */
+function elapsed(startedAt, at) {
+  if (!startedAt || !at) return null;
+  const seconds = Math.round((Date.parse(at) - Date.parse(startedAt)) / 1000);
+  if (!Number.isFinite(seconds) || seconds < 0) return null;
+  const m = Math.floor(seconds / 60);
+  return m < 60 ? `+${m}m` : `+${Math.floor(m / 60)}h${String(m % 60).padStart(2, '0')}`;
+}
+
+function Row({ team, rank, levelCount, mine, startedAt }) {
   const share = levelCount ? team.completed / levelCount : 0;
 
   return (
@@ -54,7 +70,12 @@ function Row({ team, rank, levelCount, mine }) {
             <span className="shrink-0 font-mono text-[11px] text-ok">finished</span>
           )}
         </span>
-        <span className={`${MONO} block`}>{ago(team.lastAt)}</span>
+        <span className={`${MONO} block`}>
+          {ago(team.lastAt)}
+          {elapsed(startedAt, team.lastAt) && (
+            <span className="text-paper/45"> · {elapsed(startedAt, team.lastAt)} in</span>
+          )}
+        </span>
         <span className="mt-1.5 block h-0.5 w-full overflow-hidden rounded-full bg-white/10">
           <span
             className={`block h-full rounded-full transition-[width] duration-500 ease-out-back ${
@@ -122,7 +143,9 @@ export default function LeaderboardPage() {
 
       <h1 className="mt-2 mb-1 text-[26px] tracking-[-0.02em]">Standings</h1>
       <p className="mb-7 text-muted">
-        Stations found, and how long since each team last found one. Updates on its own.
+        {board && !board.startedAt
+          ? 'The hunt has not started yet. Standings appear once the organiser opens the trail.'
+          : 'Stations found, how long since each team last found one, and how far into the hunt that was. Updates on its own.'}
       </p>
 
       {!MULTIPLAYER_ENABLED && (
@@ -147,6 +170,7 @@ export default function LeaderboardPage() {
               team={team}
               rank={index + 1}
               levelCount={board.levelCount}
+              startedAt={board.startedAt}
               mine={team.code === mine}
             />
           ))}

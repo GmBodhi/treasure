@@ -37,8 +37,10 @@ export async function readProgress(db, code) {
 /**
  * Record what a device claims to have found, and answer with the truth.
  *
- * Two rules are enforced here, and they are the only two the server can
+ * Three rules are enforced here, and they are the only ones the server can
  * meaningfully enforce given that verification happens on the phone:
+ *
+ *   Open. Nothing counts before the organiser starts the hunt.
  *
  *   Sequence. A level with no completed predecessor is refused. The hunt is
  *   sequential, so a jump from 2 to 9 is never a race — it is a bug or a team
@@ -55,9 +57,23 @@ export async function readProgress(db, code) {
  * that has drifted out of step can be told, instead of quietly showing a level
  * the server does not believe it has.
  */
-export async function applyCompletions(db, code, completions, deviceId) {
+export async function applyCompletions(db, code, completions, deviceId, started = true) {
   const current = await readProgress(db, code);
   const known = new Set(Object.keys(current.completedAt).map(Number));
+
+  // Before the organiser opens the hunt, nothing counts. This is the gate; the
+  // waiting screen on the phone is only its picture. A team that finds a marker
+  // early — or someone who skips the screen entirely — still records nothing,
+  // and the refusal comes back so the client can say why rather than silently
+  // dropping a scan somebody watched succeed.
+  if (!started) {
+    return {
+      progress: current,
+      accepted: [],
+      rejected: completions.map((entry) => entry.level).filter(Number.isInteger),
+      reason: 'not-started',
+    };
+  }
 
   const incoming = [...completions]
     .filter((entry) => Number.isInteger(entry.level) && entry.level >= 1)

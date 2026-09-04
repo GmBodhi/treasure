@@ -3,10 +3,14 @@ import { Link, useNavigate } from 'react-router-dom';
 import Button from '../components/Button.jsx';
 import Prose from '../components/Prose.jsx';
 import { ReconnectPrompt, SyncBadge, TeammateBanner } from '../components/SyncStatus.jsx';
+import WaitingPanel from '../components/WaitingPanel.jsx';
 import { useHunt } from '../hooks/useHunt.js';
 import { LEVEL_COUNT, displayTeamCode, isKnownTeam } from '../lib/hunt.js';
 
 const SHELL = 'mx-auto w-[min(560px,100%)] px-5 pt-[calc(28px+env(safe-area-inset-top))] pb-[calc(40px+env(safe-area-inset-bottom))]';
+// The level space adds room for the sticky camera bar so the last row is never
+// trapped underneath it.
+const SHELL_WITH_BAR = `${SHELL} pb-[calc(132px+env(safe-area-inset-bottom))]`;
 const EYEBROW = 'text-[11px] tracking-[0.18em] uppercase text-accent';
 const MONO = 'font-mono text-[13px] text-muted';
 const FIELD = 'w-full rounded-xl border border-stroke bg-black/30 px-3.5 py-3 font-mono text-paper';
@@ -162,7 +166,6 @@ function LevelRow({ level, status, pending, open, onToggle }) {
  * single screen.
  */
 function LevelDetail({ level, status }) {
-  const navigate = useNavigate();
   const done = status === 'done';
 
   return (
@@ -188,27 +191,30 @@ function LevelDetail({ level, status }) {
           )}
         </div>
       ) : (
+        // `location` is organiser metadata that often reads like a description
+        // of the puzzle's own answer ("… — its wall emblem"). Showing it before
+        // the station is found prints the answer directly above the cipher
+        // meant to yield it, which makes the puzzle optional — so it stays
+        // hidden until the level is actually done.
         <div className="rounded-xl border border-stroke bg-white/[0.03] px-4 py-3.5">
           <p className={EYEBROW}>Go to</p>
-          <p className="mt-1 text-[15px]">{level.station.location}</p>
+          <p className="mt-1 text-[15px] text-muted">Work it out from this.</p>
           <Prose className={`${MONO} mt-1 break-words leading-relaxed`} html={level.station.brief} />
         </div>
       )}
 
       {!done && (
-        <div className="mt-4">
-          <Button onClick={() => navigate('/scan')}>Open camera</Button>
-          <p className="mt-2.5 text-xs text-paper/40">
-            Find the marker at this location and hold it in frame to unlock level {level.n + 1}.
-            Whoever scans it, the whole team moves up.
-          </p>
-        </div>
+        <p className="mt-4 text-xs text-paper/40">
+          Find the marker at this location and hold it in frame to unlock level {level.n + 1}.
+          Whoever scans it, the whole team moves up.
+        </p>
       )}
     </div>
   );
 }
 
 export default function HuntPage() {
+  const navigate = useNavigate();
   const {
     team,
     join,
@@ -222,10 +228,17 @@ export default function HuntPage() {
     syncNow,
     clearTeammate,
     multiplayer,
+    started,
+    startedAt,
   } = useHunt();
   const [openLevel, setOpenLevel] = useState(null);
 
   if (!team) return <TeamGate onJoin={join} multiplayer={multiplayer} />;
+
+  // Joined, but the organiser has not opened the hunt. Held here rather than
+  // shown a level list with a dead camera button — a disabled control invites
+  // a team to keep pressing it.
+  if (!started) return <WaitingPanel team={team} startsAt={startedAt} onLeave={leave} />;
 
   // Default the open row to wherever the team actually is, so the common case —
   // opening the app to find out what to do next — needs no taps at all.
@@ -234,7 +247,7 @@ export default function HuntPage() {
   const pending = new Set(progress.pending);
 
   return (
-    <div className={SHELL}>
+    <div className={finished ? SHELL : SHELL_WITH_BAR}>
       <div className="flex items-baseline justify-between gap-4">
         <p className={EYEBROW}>Operation Breadcrumb</p>
         <button type="button" onClick={leave} className={`${MONO} cursor-pointer`}>
@@ -291,6 +304,20 @@ export default function HuntPage() {
           />
         ))}
       </ul>
+
+      {/* The primary action, pinned. A team opening the app in a corridor is
+          almost always doing one of two things: reading where to go, or going
+          there. This is the second, and it should never need a scroll. */}
+      {current && (
+        <div className="fixed inset-x-0 bottom-0 z-10 border-t border-stroke bg-ink/95 backdrop-blur-md">
+          <div className="mx-auto w-[min(560px,100%)] px-5 pt-3.5 pb-[calc(14px+env(safe-area-inset-bottom))]">
+            <Button onClick={() => navigate('/scan')}>Open camera</Button>
+            <p className="mt-2 text-center text-xs text-paper/40">
+              Level {current.n} of {LEVEL_COUNT}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Only where there is no server to disagree with. With one, the next
           poll puts the team's real progress straight back — correct, and a

@@ -41,6 +41,34 @@ export const adminApi = {
       body: JSON.stringify({ level }),
     }),
 
+  /** The matrix: every team's route, in play order. */
+  routes: () => request('/api/admin/routes', { headers: auth() }),
+
+  /**
+   * Regenerate every route. `force` is required once anyone has started, and
+   * the server refuses without it rather than quietly moving teams mid-run.
+   */
+  regenerateRoutes: (order, force = false) =>
+    request('/api/admin/routes', {
+      method: 'POST',
+      headers: auth(),
+      body: JSON.stringify({ order, force }),
+    }),
+
+  /** Whether the hunt is open, plus how many teams are joined and playing. */
+  state: () => request('/api/admin/state', { headers: auth() }),
+
+  /** Open the hunt. `at` may be in the future; omitted means now. */
+  start: (at) =>
+    request('/api/admin/start', {
+      method: 'POST',
+      headers: auth(),
+      body: JSON.stringify(at ? { at, force: true } : {}),
+    }),
+
+  /** Close it again. Leaves every team's progress alone. */
+  stop: () => request('/api/admin/start', { method: 'DELETE', headers: auth() }),
+
   resetProgress: (code) =>
     request(`/api/admin/teams/${encodeURIComponent(code)}/progress`, {
       method: 'DELETE',

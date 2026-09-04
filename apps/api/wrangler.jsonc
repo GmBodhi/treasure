@@ -12,16 +12,22 @@
     {
       "binding": "DB",
       "database_name": "treasure-ar",
-      // Replace with the id printed by `npm run db:create`. Local dev works
-      // without it — wrangler simulates D1 on disk in .wrangler/state.
-      "database_id": "REPLACE_WITH_YOUR_D1_DATABASE_ID",
+      // Printed by `npm run db:create`. Local dev works without it — wrangler
+      // simulates D1 on disk in .wrangler/state.
+      "database_id": "ee8a3e5b-d864-4bec-8665-fc9f2d1b8581",
       "migrations_dir": "migrations"
     }
   ],
 
   "vars": {
     // Comma-separated allowed origins for the browser app, or "*".
-    "CORS_ORIGIN": "*",
+    //
+    // Locked to the Pages production origin. Note this does NOT cover Pages
+    // preview deployments, whose hostname carries a fresh hash every time
+    // (<hash>.treasure-ar.pages.dev) and so cannot be enumerated here — a
+    // preview build renders but its API calls fail CORS. Test against the
+    // production URL, or add a specific preview origin while you need it.
+    "CORS_ORIGIN": "https://treasure-ar.pages.dev",
     // Upload cap for a compiled .mind bundle.
     "MAX_TARGET_BYTES": "10485760",
     // Rows kept per experience. D1 has room to spare; this only stops an
@@ -30,18 +36,20 @@
 
     // How many levels a full run is. Only the leaderboard needs it, to know
     // which teams have finished rather than merely got a long way.
-    "LEVEL_COUNT": "10",
+    "LEVEL_COUNT": "10"
 
-    // Signs team tokens. Both of the values below are dev defaults so a fresh
-    // clone runs; a `wrangler secret put NAME` overrides a var of the same
-    // name, so setting them before deploying is the whole of the production
-    // step. Rotating TEAM_SECRET signs every phone out, which on the day means
-    // fifteen teams re-entering a pin — do it before the event, not during.
-    "TEAM_SECRET": "dev-only-run-wrangler-secret-put-TEAM_SECRET",
-
-    // Guards /api/admin: the roster with pins, and the level override. Unset
-    // is not "open", it is a 503 — an unconfigured deployment must not hand out
-    // every team's pin.
-    "ADMIN_TOKEN": "dev-only-run-wrangler-secret-put-ADMIN_TOKEN"
+    // TEAM_SECRET and ADMIN_TOKEN are deliberately NOT here.
+    //
+    // `wrangler deploy` uploads the vars in this file and a var overwrites a
+    // secret of the same name — so a dev placeholder sitting here does not get
+    // "overridden" by `wrangler secret put`, it silently replaces the real
+    // secret on the next deploy and puts a value from a public repo in front of
+    // every team's pin. Verified the hard way.
+    //
+    // Local values go in .dev.vars, which `wrangler dev` reads and `wrangler
+    // deploy` never uploads. Deployed values go in:
+    //   wrangler secret put TEAM_SECRET
+    //   wrangler secret put ADMIN_TOKEN
+    // Both are required; src/lib/auth.js refuses rather than falling back.
   }
 }

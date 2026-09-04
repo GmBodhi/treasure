@@ -34,7 +34,7 @@ export function useStation(level) {
           scene: null,
           error: {
             title: 'Station not ready',
-            body: `Level ${level.n} (${level.station.id}) has no compiled target yet. Compile it in /studio and save it to apps/web/public/targets/${level.station.id}.mind.`,
+            body: `Position ${level.n} on this team's route is station ${level.station.id} (${level.title}), which has no compiled target yet. Compile it in /studio and save it to apps/web/public/targets/${level.station.id}.mind.`,
           },
         });
         return;
@@ -58,6 +58,12 @@ export function useStation(level) {
               label: `${level.n} of ${LEVEL_COUNT}`,
               location: level.station.location,
               breadcrumb: level.breadcrumb,
+              // The payload — the hash, the ciphertext, the room number. It
+              // belongs on the sheet at the moment of the scan: a team that has
+              // just found a marker is standing in front of it wanting the
+              // thing they came for, and making them navigate back to the level
+              // space to read it is three taps at the exact moment they are
+              // least inclined to go looking.
               reveal: level.station.reveal,
               revealImage: level.station.revealImage ?? null,
               cta: { label: 'Continue', href: '/' },

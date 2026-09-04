@@ -1,6 +1,11 @@
 /**
  * Who is allowed to move a team's progress.
  *
+ * Both `TEAM_SECRET` and `ADMIN_TOKEN` come from `wrangler secret put`, and
+ * neither appears in wrangler.jsonc — a var there would overwrite the secret on
+ * the next `wrangler deploy`, not be overridden by it. Local values live in
+ * .dev.vars, which is never uploaded.
+ *
  * A team token is the team code plus an HMAC of it. That makes it verifiable
  * without a lookup — no sessions table, no expiry to sweep, and a phone that
  * joined at registration still works six hours later on a flat battery and a
@@ -31,6 +36,28 @@ function base64url(bytes) {
   return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
+/**
+ * Refuse to run unconfigured.
+ *
+ * Without this, a missing binding reaches `encoder.encode(undefined)` and every
+ * token in the deployment gets signed with the literal string "undefined" —
+ * which works perfectly, forges trivially, and looks exactly like a healthy
+ * system from the outside. Failing at the first request is the only version of
+ * this anybody finds out about.
+ */
+function secretOf(env) {
+  const secret = env.TEAM_SECRET;
+  if (!secret) {
+    throw new HTTPException(503, {
+      res: Response.json(
+        { error: 'TEAM_SECRET is not configured on this deployment' },
+        { status: 503 },
+      ),
+    });
+  }
+  return secret;
+}
+
 async function sign(secret, code) {
   const key = await crypto.subtle.importKey(
     'raw',
@@ -43,7 +70,7 @@ async function sign(secret, code) {
 }
 
 export async function issueToken(env, code) {
-  return `${code}.${await sign(env.TEAM_SECRET, code)}`;
+  return `${code}.${await sign(secretOf(env), code)}`;
 }
 
 /**
@@ -61,7 +88,7 @@ export async function requireTeam(c) {
 
   const code = token.slice(0, split);
   const presented = encoder.encode(token.slice(split + 1));
-  const expected = encoder.encode(await sign(c.env.TEAM_SECRET, code));
+  const expected = encoder.encode(await sign(secretOf(c.env), code));
 
   if (presented.byteLength !== expected.byteLength) throw unauthorized();
   if (!crypto.subtle.timingSafeEqual(presented, expected)) throw unauthorized();

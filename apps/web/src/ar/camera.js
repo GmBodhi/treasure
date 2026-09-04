@@ -24,6 +24,31 @@ export async function listCameras() {
     }));
 }
 
+/**
+ * What to ask a phone camera for.
+ *
+ * Unconstrained, browsers pick for themselves, and some Android phones hand
+ * back 1080p or higher. Every one of those pixels is carried through MindAR's
+ * per-frame feature detection for as long as the camera is open, which on a
+ * mid-range phone costs frame rate, battery and — over a two-hour event — a
+ * device hot enough to throttle itself.
+ *
+ * 720p is well above what marker detection needs; the tracker downsamples
+ * before it looks for features anyway, so the extra resolution buys nothing but
+ * heat. Capping the frame rate is the other half: 30fps is more than enough to
+ * acquire an image target, and a phone that would happily run the sensor at 60
+ * is doing twice the work for no gain a player can see.
+ *
+ * Every value is `ideal`, never `exact`. An exact constraint a camera cannot
+ * meet rejects the whole getUserMedia call — the difference between a slightly
+ * different resolution and no camera at all.
+ */
+const PHONE_CONSTRAINTS = {
+  width: { ideal: 1280 },
+  height: { ideal: 720 },
+  frameRate: { ideal: 30, max: 30 },
+};
+
 /** Read a capability range, tolerating browsers that expose none. */
 function range(capabilities, key) {
   const value = capabilities?.[key];
@@ -44,8 +69,8 @@ export class CameraSession {
   async open({ deviceId, facingMode = 'environment' } = {}) {
     this.close();
     const video = deviceId
-      ? { deviceId: { exact: deviceId } }
-      : { facingMode: { ideal: facingMode } };
+      ? { deviceId: { exact: deviceId }, ...PHONE_CONSTRAINTS }
+      : { facingMode: { ideal: facingMode }, ...PHONE_CONSTRAINTS };
 
     this.stream = await navigator.mediaDevices.getUserMedia({ audio: false, video });
     this.track = this.stream.getVideoTracks()[0] ?? null;

@@ -5,9 +5,13 @@ import {
   applyServerProgress,
   completionsFor,
   readProgress,
+  readRoute,
+  readStartedAt,
   readTeam,
   recordFind,
   resetProgress,
+  writeRoute,
+  writeStartedAt,
   writeTeam,
 } from '../lib/progress.js';
 
@@ -53,7 +57,45 @@ export function useHunt() {
   const [progress, setProgress] = useState(() => readProgress(readTeam() ?? ''));
   const [sync, setSync] = useState(initialSync);
 
-  const levels = useMemo(() => (team ? levelsFor(team) : []), [team]);
+  /**
+   * The team's route, as the server last served it.
+   *
+   * Read from the cache first so a cold start in a corridor renders the right
+   * station immediately. `levelsFor` falls back to a locally derived route when
+   * this is null, which is what keeps a build with no Worker playable.
+   */
+  const [route, setRoute] = useState(() => readRoute(readTeam() ?? ''));
+
+  /**
+   * When the organiser opens the hunt, or null while it is shut.
+   *
+   * Not cached in localStorage, unlike the route. A phone that has been in a
+   * pocket since before the start should find out the hunt is open by asking,
+   * not by trusting what it remembered — and the poll answers within twenty
+   * seconds of "go". The cost of not caching is that a cold start with no
+   * signal shows the waiting screen, which is the safe way round: the server
+   * would refuse those finds anyway.
+   */
+  const [startedAt, setStartedAt] = useState(() => readStartedAt(readTeam() ?? ''));
+
+  /**
+   * Re-render exactly when a scheduled start arrives.
+   *
+   * Without this a future start never opens on its own: the poll keeps
+   * returning the same `startedAt`, React bails on identical state, and the
+   * waiting screen sits there past the announced time until something else
+   * happens to re-render. The timeout fires once, at the moment itself.
+   */
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    if (!startedAt) return undefined;
+    const wait = Date.parse(startedAt) - Date.now();
+    if (wait <= 0) return undefined;
+    const id = setTimeout(() => setTick((n) => n + 1), wait + 250);
+    return () => clearTimeout(id);
+  }, [startedAt]);
+
+  const levels = useMemo(() => (team ? levelsFor(team, route) : []), [team, route]);
 
   // A second sync starting while the first is in flight would post a stale
   // completion set and race its own answer into state. One at a time; the
@@ -84,6 +126,13 @@ export function useHunt() {
       // Only commit if this is still the team on screen — an await spans a
       // sign-out, and the reply would otherwise resurrect the old team's state.
       if (teamRef.current !== code) return;
+
+      // The route lands before the progress: an organiser who regenerated the
+      // matrix has changed which stations the positions mean, and rendering a
+      // new position against a stale route would point a team at the wrong
+      // marker for one frame.
+      if (answer.route) setRoute(writeRoute(code, answer.route));
+      setStartedAt(writeStartedAt(code, answer.startedAt));
 
       const before = progressRef.current.unlocked;
       const next = applyServerProgress(code, answer.progress, answer.rejected);
@@ -148,6 +197,8 @@ export function useHunt() {
     writeTeam(code);
     setTeamState(code);
     setProgress(readProgress(code));
+    setRoute(readRoute(code));
+    setStartedAt(readStartedAt(code));
   }, []);
 
   /**
@@ -173,6 +224,8 @@ export function useHunt() {
         const payload = await joinTeam(normalized, pin);
         writeTeam(normalized);
         setTeamState(normalized);
+        setRoute(writeRoute(normalized, payload.route));
+        setStartedAt(writeStartedAt(normalized, payload.startedAt));
         setProgress(applyServerProgress(normalized, payload.progress));
         setSync({ status: 'synced', at: Date.now(), error: null, rejected: [], teammate: null });
         return { ok: true };
@@ -195,6 +248,8 @@ export function useHunt() {
     leaveTeam();
     writeTeam(null);
     setTeamState(null);
+    setRoute(null);
+    setStartedAt(null);
     setSync(initialSync());
   }, []);
 
@@ -227,6 +282,7 @@ export function useHunt() {
     if (!team) return;
     resetProgress(team);
     setProgress(readProgress(team));
+    setRoute(null);
     syncNow();
   }, [team, syncNow]);
 
@@ -236,14 +292,27 @@ export function useHunt() {
   const finished = progress.unlocked > LEVEL_COUNT;
   const current = finished ? null : levels[progress.unlocked - 1] ?? null;
 
+  /**
+   * Is the trail open?
+   *
+   * A start time may be in the future, so this is a comparison rather than a
+   * null check. With no Worker there is no organiser to wait for and the hunt
+   * is always open — otherwise a rehearsal build would sit on a waiting screen
+   * forever with nothing able to release it.
+   */
+  const started = !MULTIPLAYER_ENABLED || (Boolean(startedAt) && Date.parse(startedAt) <= Date.now());
+
   return {
     team,
     join,
     leave,
     levels,
+    route,
     progress,
     current,
     finished,
+    started,
+    startedAt,
     complete,
     reset,
     sync,

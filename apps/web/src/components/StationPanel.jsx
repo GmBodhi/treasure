@@ -18,7 +18,10 @@ export default function StationPanel({ level, onStart, onBack }) {
   return (
     <section className={`${PANEL_BASE} ${SHOW_INTRO}`}>
       <div className={PANEL_INNER}>
-        <p className={EYEBROW}>Level {level?.n} · {level?.station?.location}</p>
+        {/* No location here either. This screen is reachable before a team has
+            worked out where to go, and naming the place would hand them the
+            answer on the way to the camera. */}
+        <p className={EYEBROW}>Level {level?.n}</p>
         <h1 className={TITLE}>{level?.title ?? 'Station'}</h1>
         <Prose className={LEDE} html={level?.station?.brief} />
 
