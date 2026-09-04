@@ -205,6 +205,19 @@ export default function ScanPage() {
     api.reportScan({ experienceId: 'breadcrumb', markerId: hit.id, targetIndex: level.n });
   }, []);
 
+  /**
+   * The backup path. Some marker somewhere will not track — weather, glare, a
+   * photo that never compiled well — and the event does not stop for that.
+   * Reuses `handleFound` with the same marker descriptor `ArScene` would have
+   * handed it on a real detection, so a skipped station is indistinguishable
+   * downstream (progress, sync, the reveal shown) from one that was actually
+   * scanned.
+   */
+  const handleSkip = useCallback(() => {
+    const firstMarker = scene?.markers?.[0];
+    if (firstMarker) handleFound(firstMarker);
+  }, [scene, handleFound]);
+
   const handleLost = useCallback((hit, dwellMs) => {
     setHint('Hold the marker in frame');
     setState((prev) => (prev === 'found' ? 'scanning' : prev));
@@ -280,6 +293,7 @@ export default function ScanPage() {
           total={1}
           foundCount={0}
           onClose={stopAr}
+          onSkip={state === 'scanning' ? handleSkip : undefined}
           controls={
             <CameraControls
               zoomRange={camera.capabilities.zoom}

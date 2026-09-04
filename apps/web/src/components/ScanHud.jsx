@@ -12,7 +12,7 @@ import { SHOW_HUD } from './panels.js';
  * takes over the whole screen above this. This HUD only handles the
  * framing/scanning state leading up to that.
  */
-export default function ScanHud({ status, hint, total, foundCount, onClose, controls, paused }) {
+export default function ScanHud({ status, hint, total, foundCount, onClose, controls, paused, onSkip }) {
   return (
     <section
       className={
@@ -56,6 +56,21 @@ export default function ScanHud({ status, hint, total, foundCount, onClose, cont
           {hint}
         </p>
         {controls}
+
+        {/* Backup path for a marker that will not track: skips detection
+            entirely and records the station as found the same way a real
+            scan would. Deliberately unguarded — this is an organiser escape
+            hatch for the day of the event, not a player-facing feature, and
+            whoever can reach it is trusted to use it honestly. */}
+        {onSkip && (
+          <button
+            type="button"
+            onClick={onSkip}
+            className="mx-auto mt-1 font-mono text-[12px] text-muted underline decoration-dotted underline-offset-4 cursor-pointer"
+          >
+            Can&apos;t scan this marker? Mark it found →
+          </button>
+        )}
       </div>
 
       {foundCount > 0 && total > 1 && (
